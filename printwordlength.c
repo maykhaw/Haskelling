@@ -2,22 +2,25 @@
 
 /* Print number of characters for each word */ 
 
-#define	IN	1	/* inside a word */ 
-#define	OUT	0	/* outside a word */ 
-
 int main() 
-
 { 
-	int c, nc, state; 
+	int c, nc, nw; 
  
-	nc = 0; 
-	state = IN;
+	nc = nw = 0; 
 	while ((c = getchar()) != EOF) {
-		if (c == ' ' || c == '\n' || c == '\t')
-			state = OUT; 
-		if (state == IN)  
-			++nc;
-	printf("%d", nc);
+		int isSpace = (c == ' ' || c == '\n' || c == '\t');
+		if ((nc > 0) && isSpace) {
+			printf("%d ", nc);
+			nc = 0;
+			++nw;
+		}
+		if (!isSpace) ++nc;
 	}
+	if (nc > 0) {
+		printf("%d", nc);
+		++nw;
+	}
+	printf("\n");
+	printf("%d\n", nw); 
 }
 
