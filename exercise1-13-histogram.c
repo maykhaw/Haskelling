@@ -26,13 +26,20 @@ int main()
 	if (nc > 0) {
 		++ndigit[nc];
 	}
-	printf("word length popularity ="); 
-	for (i =  25; (i >= 0) && (ndigit[i] == 0); --i)
+	printf("Histogram of Word Length"); 
+	for (i = 25; (i >= 0) && (ndigit[i] == 0); --i)
 		;
 	int lastNonZero = i;
-	for (i = 1; i <= lastNonZero; ++i) 
-		printf(" %d", ndigit[i]);
-	printf("\n");
+	for (i = 1; i <= lastNonZero; ++i){ 
+		if (ndigit[i] == 0)
+			printf("\n");
+		if (ndigit[i] > 0){
+			for (int currentstars = 0; currentstars < ndigit[i]; ++currentstars)
+				printf("*");
+			printf("\n");
+			}
+		}
+
 }
 
 
