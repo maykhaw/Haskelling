@@ -22,7 +22,7 @@ int main()
 			copy (longest, line);
 		}
 	if (max > 0)	/* there was a line */ 
-		printf("%s", longest);
+		printf("%d\t%s", max, longest);
 	return 0;
 }
 
@@ -30,15 +30,22 @@ int main()
 
 int getlinex(char s[], int lim)
 {
-	int c, i; 
-	
-	for (i=0; (i<lim-1) && (c=getchar())!=EOF && c!='\n'; ++i) 
-		s[i] = c; 
+	int c, i = 0; 
+	for (i=0; (i<lim-1) && (c=getchar())!=EOF && c!='\n'; ++i) {
+		s[i] = c;
+	}
 	if (c == '\n') {
 		s[i] = c; 
 		++i;
+		s[i] = '\0';
 	}
-	s[i] = '\0';
+	else {
+		s[i] = '\0';
+		if(i >= lim - 1) {
+			while((c = getchar())!=EOF && c!='\n')
+				++i;
+		}
+	}
 	return i;
 }
 
