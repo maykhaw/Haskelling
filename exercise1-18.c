@@ -12,9 +12,10 @@ int main()
 	char s[maxline];
 
 	while (c!=EOF){
-		for (i = 0; (c=getchar())!=EOF && c!='\n'; ++i)
+		for (i = 0; i < maxline && (c=getchar())!=EOF && c!='\n'; ++i)
 			s[i]=c; 
-		
+		if (i >= maxline) 
+			return 1; 
 		for (--i; i >= 0 && (s[i]=='\t' || s[i]==' '); --i)
 			;
 		for (int j = 0; j <= i; ++j)
