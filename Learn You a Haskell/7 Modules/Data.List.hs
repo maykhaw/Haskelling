@@ -1,5 +1,5 @@
-import Data.List hiding (intersperse, intercalate, transpose, concat, concatMap, and, or, any, all, iterate, splitAt, takeWhile) 
-import Prelude hiding (concat, concatMap, and, or, any, all, iterate, splitAt, takeWhile) 
+import Data.List hiding (intersperse, intercalate, transpose, concat, concatMap, and, or, any, all, iterate, splitAt, takeWhile, dropWhile, span, break, sort, group, inits, tails, isInfixOf, isPrefixOf, isSuffixOf, elem, notElem, partition, find)  
+import Prelude hiding (concat, concatMap, and, or, any, all, iterate, splitAt, takeWhile, dropWhile) 
 import Test.QuickCheck 
 import qualified Data.List as DL 
 import Text.Show.Functions 
@@ -71,13 +71,14 @@ testall p l = all p l === DL.all p l
 iterate :: (a -> a) -> a -> [a] 
 iterate f a = f a : iterate f (f a) 
 
-testiterate :: (Int -> Int) -> Int -> Property 
-testiterate f a = iterate f a === DL.iterate f a 
+testiterate :: (Show Int, Eq Int) => Int -> (Int -> Int) -> Int -> Bool 
+testiterate z f a = take z (iterate f a) == take z DL.iterate f a 
 
 splitAt :: Int -> [a] -> ([a],[a]) 
-splitAt a l = (take helper l, drop helper l) 
-	where helper = a - 1 
-
+splitAt _ [] = ([],[]) 
+splitAt 0 l = ([],l)
+splitAt a (x : []) = ([x], [])
+splitAt a l = (take a l, drop a l) 
 testsplitAt :: Int -> [Char] -> Property 
 testsplitAt a l = splitAt a l === DL.splitAt a l 
 
@@ -88,16 +89,23 @@ takeWhile p [] = []
 testtakeWhile :: (Int -> Bool) -> [Int] -> Bool  
 testtakeWhile p l = takeWhile p l == DL.takeWhile p l 
 
+dropWhile :: (a -> Bool) -> [a] -> [a] 
+dropWhile _ [] = []
+dropWhile p (x : xs) = if p x then dropWhile p xs else x : xs 
+
+testdropWhile :: (Int -> Bool) -> [Int] -> Property 
+testdropWhile p l = dropWhile p l === DL.dropWhile p l 
 main = do
-	quickCheck testintersperse
-	quickCheck testintercalate
-	quickCheck testtranspose
-	quickCheck testconcat 
-	quickCheck testconcatMap 
-	quickCheck testor
-	quickCheck testand
-	quickCheck testall
-	quickCheck testany
-	quickCheck testtakeWhile
-	quickCheck testsplitAt 
-	quickCheck testiterate
+--	quickCheck testintersperse
+--	quickCheck testintercalate
+--	quickCheck testtranspose
+--	quickCheck testconcat 
+--	quickCheck testconcatMap 
+--	quickCheck testor
+--	quickCheck testand
+--	quickCheck testall
+--	quickCheck testany
+--	quickCheck testtakeWhile
+--	quickCheck testsplitAt 
+--	quickCheck testiterate
+	quickCheck testdropWhile 
