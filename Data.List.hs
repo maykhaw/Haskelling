@@ -72,7 +72,7 @@ iterate :: (a -> a) -> a -> [a]
 iterate f a = f a : iterate f (f a) 
 
 testiterate :: Int -> (Int -> Int) -> Int -> Bool 
-testiterate z f a = take z (iterate f a) == take z DL.iterate f a 
+testiterate z f a = take z (iterate f a) == take z (DL.iterate f a)
 
 splitAt :: Int -> [a] -> ([a],[a]) 
 splitAt _ [] = ([],[]) 
