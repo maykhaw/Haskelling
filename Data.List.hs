@@ -1,7 +1,9 @@
+{-# Language ViewPatterns #-}
 import Data.List hiding (intersperse, intercalate, transpose, concat, concatMap, and, or, any, all, iterate, splitAt, takeWhile, dropWhile, span, break, sort, group, inits, tails, isInfixOf, isPrefixOf, isSuffixOf, elem, notElem, partition, find)  
 import Prelude hiding (concat, concatMap, and, or, any, all, iterate, splitAt, takeWhile, dropWhile) 
 import Test.QuickCheck 
 import qualified Data.List as DL 
+import Test.QuickCheck.Function
 import Text.Show.Functions 
 intersperse :: a -> [a] -> [a] 
 
@@ -71,8 +73,8 @@ testall p l = all p l === DL.all p l
 iterate :: (a -> a) -> a -> [a] 
 iterate f a = f a : iterate f (f a) 
 
-testiterate :: Int -> (Int -> Int) -> Int -> Bool 
-testiterate z f a = take z (iterate f a) == take z (DL.iterate f a)
+testiterate :: Int -> (Fun Int Int) -> Int -> Property
+testiterate z (apply -> f) a = take z (iterate f a) === take z (DL.iterate f a)
 
 splitAt :: Int -> [a] -> ([a],[a]) 
 splitAt _ [] = ([],[]) 
@@ -107,5 +109,5 @@ main = do
 --	quickCheck testany
 --	quickCheck testtakeWhile
 --	quickCheck testsplitAt 
---	quickCheck testiterate
+	quickCheck testiterate
 	quickCheck testdropWhile 
