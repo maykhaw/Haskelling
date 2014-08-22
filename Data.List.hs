@@ -1,6 +1,6 @@
 {-# Language ViewPatterns #-}
 import Data.List hiding (intersperse, intercalate, transpose, concat, concatMap, and, or, any, all, iterate, splitAt, takeWhile, dropWhile, span, break, sort, group, inits, tails, isInfixOf, isPrefixOf, isSuffixOf, elem, notElem, partition, find)  
-import Prelude hiding (concat, concatMap, and, or, any, all, iterate, splitAt, takeWhile, dropWhile) 
+import Prelude hiding (concat, concatMap, and, or, any, all, iterate, splitAt, takeWhile, dropWhile, span)
 import Test.QuickCheck 
 import qualified Data.List as DL 
 import Test.QuickCheck.Function
@@ -71,10 +71,11 @@ testall :: (Int -> Bool) -> [Int] -> Property
 testall p l = all p l === DL.all p l 
 
 iterate :: (a -> a) -> a -> [a] 
-iterate f a = f a : iterate f (f a) 
-
+iterate f a = a : iterate f (f a) 
 testiterate :: Int -> (Fun Int Int) -> Int -> Property
 testiterate z (apply -> f) a = take z (iterate f a) === take z (DL.iterate f a)
+
+
 
 splitAt :: Int -> [a] -> ([a],[a]) 
 splitAt _ [] = ([],[]) 
@@ -97,7 +98,13 @@ dropWhile p (x : xs) = if p x then dropWhile p xs else x : xs
 
 testdropWhile :: (Int -> Bool) -> [Int] -> Property 
 testdropWhile p l = dropWhile p l === DL.dropWhile p l 
-main = do
+
+span :: (a -> Bool) -> [a] -> ([a],[a])  
+--span _ [] = ([],[])
+span p l = (takeWhile p l, dropWhile p l)
+--testspan :: (Int -> Bool) -> [Int] -> Property 
+--testspan p l = span p l === DL.span p l
+--main = do
 --	quickCheck testintersperse
 --	quickCheck testintercalate
 --	quickCheck testtranspose
@@ -109,5 +116,6 @@ main = do
 --	quickCheck testany
 --	quickCheck testtakeWhile
 --	quickCheck testsplitAt 
-	quickCheck testiterate
-	quickCheck testdropWhile 
+--	quickCheck testiterate
+--	quickCheck testdropWhile
+--	quickCheck testspan 
