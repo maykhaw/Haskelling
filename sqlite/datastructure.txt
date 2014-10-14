@@ -1,0 +1,51 @@
+Requisitions: 
+    Requisition Number -- unique
+    Requestor name 
+    Request submitted on -- date 
+    Request approved on -- date 
+    Client site
+create table sos.req
+    ( req_id num # look up how id's are best represented
+    , requstor_name text # look up text types
+    , submitted_on date
+    , approved_on date
+    , client_site text
+    , primary key (req_id)
+    );
+Purchase Orders: 
+    Purchase Order number -- unique 
+    Requisition Number -- may not be unique
+    Purchase order issued -- date 
+    Supplier 
+    Cost -- monetary 
+    Number of line items 
+    Currency 
+    revision number
+Invoices:
+    Invoice number -- unique 
+    Purchase Order Number 
+    Invoice date -- date 
+    Billing pack received -- date 
+    Invoice total -- monetary 
+Delivery Data:
+    key: docket number, invoice number
+    Docket number -- not always unique 
+    Invoice number 
+    Number of line items 
+    Date of Despatch -- date 
+    Date of delivery -- date 
+    Proof of Delivery -- Boolean
+    
+---
+req. line items / breakdown of items in a req:
+    key is (requisition number, id of medication)
+    requisition number
+    id of medication
+    count -- number
+     
+---
+
+Purchase Orders: 
+    Total value of invoices received 
+    Purchase Order . Cost 
+

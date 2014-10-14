@@ -1,0 +1,8 @@
+create table req
+    ( req_id num -- look up how id's are best represented
+    , requstor_name text -- look up text types
+    , submitted_on date
+    , approved_on date
+    , client_site text
+    , primary key (req_id)
+    );
