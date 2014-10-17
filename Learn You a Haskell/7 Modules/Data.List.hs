@@ -85,7 +85,7 @@ splitAt a l = (take a l, drop a l)
 testsplitAt :: Int -> [Char] -> Property 
 testsplitAt a l = splitAt a l === DL.splitAt a l 
 
-takeWhile :: (Int -> Bool) -> [Int] -> [Int] 
+takeWhile :: (a -> Bool) -> [a] -> [a] 
 takeWhile p (x : xs) = if p x then x : takeWhile p xs else []
 takeWhile p [] = []
 
@@ -100,11 +100,17 @@ testdropWhile :: (Int -> Bool) -> [Int] -> Property
 testdropWhile p l = dropWhile p l === DL.dropWhile p l 
 
 span :: (a -> Bool) -> [a] -> ([a],[a])  
---span _ [] = ([],[])
+span _ [] = ([],[])
 span p l = (takeWhile p l, dropWhile p l)
---testspan :: (Int -> Bool) -> [Int] -> Property 
---testspan p l = span p l === DL.span p l
---main = do
+testspan :: (Int -> Bool) -> [Int] -> Property 
+testspan p l = span p l === DL.span p l
+
+sort :: Ord a => [a] -> [a] 
+sort [] = []  
+sort (x : []) = [x] 
+sort (x : y : xs) = 
+
+main = do
 --	quickCheck testintersperse
 --	quickCheck testintercalate
 --	quickCheck testtranspose
