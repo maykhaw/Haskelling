@@ -14,15 +14,19 @@ make8 :: [Bit] -> [Bit]
 make8 bits = take 8 (bits ++ repeat 0) 
 
 encode :: String -> [Bit] 
-encode = concat . map (make8 . int2bin . ord) 
+encode = concat . (map (parity . make8 . int2bin . ord))
+
+parity :: [Bit] -> [Bit]
+parity x = if odd (sum x) then 1 : x else 0 : x 
+		 
 
 --before map, add (if count of ones is odd then 1 else 0) : map something or other 
-chop8 :: [Bit] -> [[Bit]]
-chop8 [] = [] 
-chop8 bits = take 8 bits : chop8 (drop 8 bits)
+chop9 :: [Bit] -> [[Bit]]
+chop9 [] = [] 
+chop9 bits = take 9 bits : chop9 (drop 9 bits)
 
 decode :: [Bit] -> String 
-decode = map (chr . bin2int) . chop8 
+decode = map (chr . bin2int . tail) . chop9 
 
 transmit :: String -> String 
 transmit = decode . channel . encode 
