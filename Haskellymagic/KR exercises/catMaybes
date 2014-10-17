@@ -1,0 +1,11 @@
+import qualified Data.Maybe as DM
+import Test.QuickCheck 
+
+catMaybes :: [Maybe a] -> [a] 
+catMaybes [] = [] 
+catMaybes [Just a] = [a] 
+catMaybes [Nothing] = [] 
+catMaybes (Nothing : xs) = catMaybes xs 
+catMaybes (Just x : xs) = x : catMaybes xs 
+
+
