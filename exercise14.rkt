@@ -1,9 +1,10 @@
 #lang racket 
 
-; string-first is a function that extracts the first character in a string 
+(define (cube-volume side)
+	(expt side 3))
 
-(define (string-first s)
-	(string-ref s 0))
+(define (cube-surface side)
+	(* 6 (sqr side)))
 
-(string-first "the cows come home")
-
+(cube-volume 10)
+(cube-surface 10)
