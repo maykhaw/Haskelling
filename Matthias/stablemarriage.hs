@@ -39,6 +39,7 @@ rankcombo (man, woman) men women = let manrankings = zip (fromMaybe [] (lookup w
 match :: [(Gent, [Lady])] -> [(Lady, [Gent])] -> [(Gent, Lady)] 
 match men women = let allmen = map fst men
                       allwomen = map fst women
+                      combinationrank = zip combinations $ map rankcombo combinations 
                       combinations = allcombinations allmen allwomen
                   in
 
