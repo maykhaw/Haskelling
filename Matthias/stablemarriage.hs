@@ -41,7 +41,13 @@ match men women = let allmen = map fst men
                       allwomen = map fst women
                       combinationrank = zip combinations $ map rankcombo combinations 
                       combinations = allcombinations allmen allwomen
-                  in
+                      (firstchoice, rest) =  partition (==((_,_),(0,0))) combinationrank
+                      firsts = map fst firstchoice
+                      newrest = map fst rest
+                      reducerest firstchoice rest = let  
+                                                        throwaway (man,woman) ((xy, xx) : xxxy) = if (man == xy || woman == xx) then throwaway (man,woman) xxxy else (xy,xx) : throwaway (man,woman) xxxy 
+                                                    in concat $ map (sequence $ map throwaway firsts) newrest 
+                  in 
 
 testelope :: [((Gent, Lady),(Maybe Int, Maybe Int))] -> Bool 
 testelope l  = let (notelope,possible) = partition (
