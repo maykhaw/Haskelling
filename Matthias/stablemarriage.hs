@@ -41,10 +41,10 @@ match men women = let allmen = map fst men
                       allwomen = map fst women
                       combinationrank = zip combinations $ map rankcombo combinations 
                       combinations = allcombinations allmen allwomen
-                  in
+                  in undefined 
 
-testelope :: [((Gent, Lady),(Maybe Int, Maybe Int))] -> Bool 
-testelope l  = let (notelope,possible) = partition (
+{-testelope :: [((Gent, Lady),(Maybe Int, Maybe Int))] -> Bool 
+testelope l  = let (notelope,possible) = partition (-}
 
 main = do
     quickCheck testallcombinations
