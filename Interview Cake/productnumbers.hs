@@ -1,10 +1,9 @@
 import Test.QuickCheck 
 import Data.List
+
 otherproduct :: [Int] -> [Int] 
-otherproduct l = let linits = init $ inits l
-                     ltails = tail $ tails l
-                     productlist = zipWith (++) linits ltails in
-                 map product productlist
+otherproduct l =
+    zipWith (*) (init $ scanl (*) 1 l) (tail $ scanr (*) 1 l)
 
 testother :: [Int] -> Bool 
 testother l = length l == length (otherproduct l) 
