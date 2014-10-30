@@ -18,4 +18,9 @@ compareSuitor :: (Eq a, Eq b) => [(a, [b])] -> a -> b -> b -> Ordering
 compareSuitor l woman man1 man2 = rank womanlist man1 man2
     where womanlist = fromMaybe [] (lookup woman l) 
 
+nallcombos :: [a] -> [b] -> [(a,b)] 
+    
+
+
 match :: [(Gent, [Lady])] -> [(Lady, [Gent])] -> [(Gent, Lady)] 
+match [(man, (xx:xxs)] 
