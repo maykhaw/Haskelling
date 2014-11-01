@@ -3,23 +3,6 @@ import Data.Ord
 import qualified Data.Set as Set
 
 -- left before right, first before second 
-
-
-subset :: Ord a => [(a,a)] -> [a] 
-subset l = let (first,second) = unzip l
-               setFirst = Set.fromList first
-               setSecond = Set.fromList second in
-           Set.toList $ Set.difference setFirst setSecond
-
-testsubset :: [(Int,Int)] -> Bool 
-testsubset l = let (_,second) = unzip l in
-               all (`notElem` second) $ subset l
-
-{-tsort :: Ord a => [(a,a)] -> Maybe [a] 
-tsort [] = [] 
-tsort [(a,b)] = [a,b] 
-tsort ((a,b)-}
-
 {-
 
 Order tasks:
@@ -52,7 +35,39 @@ or
 
 -}
 
+subset :: Ord a => [(a,a)] -> [(a,a)]
+subset l = let (first,second) = unzip l
+               setFirst = Set.fromList first
+               setSecond = Set.fromList second
+               subs = Set.toList $ Set.difference setFirst setSecond in
+           filter (\(x,_) -> x `elem` subs) l
+notSubset :: Ord a => [(a,a)] -> [(a,a)]
+notSubset [] = []
+notSubset l = filter (`notElem` subset l) l 
+
+testsubset :: [(Int,Int)] -> Bool 
+testsubset l = let (_,second) = unzip l 
+                   subs = map fst $ subset l in
+               all (`notElem` second) subs 
+
+testnotSubset :: [(Int,Int)] -> Bool 
+testnotSubset l = length (notSubset l ++ subset l) == length l
+
+
+testnotSubset1 :: [(Int,Int)] -> Bool 
+testnotSubset1 l = all (`notElem` subset l) (notSubset l)
+
+{-tsort :: Ord a => [(a,a)] -> Maybe [a] 
+tsort [] = [] 
+tsort [(a,b)] = [a,b] 
+tsort l = undefined  -}
+
+
+
 
 main = do
     print $ subset [(1,10),(40,3),(50,1)]
+    print $ notSubset [(1,10),(40,3),(50,1)]
+    quickCheck testnotSubset
     quickCheck testsubset
+    quickCheck testnotSubset1
