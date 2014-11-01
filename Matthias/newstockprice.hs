@@ -7,9 +7,18 @@ pairsMax [] = []
 pairsMax [a] = [] 
 pairsMax l = let maxl = maximum l
                  (before,after) = (takeWhile (< maxl) l, tail (dropWhile (< maxl) l))
-                 beforepairs [] = []
                  beforepairs list = zip list $ repeat maxl in
-             if null after then beforepairs before else beforepairs before ++ pairsMax after
+             beforepairs before ++ pairsMax after
+-- pairsMax l takes the initial maximum of the whole list, and tuplefies it with each and every preceding element in the list. Then it recurses through the remaining list AFTER the maximum
+
+pairsMinMax :: [a] -> [(a,a)]
+pairsMinMax [] = []
+pairsMinMax [a] = [] 
+pairsMinMax l = let maxl = maximum l
+                    (before,after) = (takeWhile (< maxl) l, tail (dropWhile (< maxl) l))
+                    minb = minimum b
+                    beforeMinMax = (minb,maxl) in
+                 if null after then beforeMinMax else beforeMinMax ++ pairsMinMax after
 
 allpairs :: [a] -> [(a,a)]
 allpairs [] = [] 
