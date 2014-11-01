@@ -65,15 +65,29 @@ tsort l = let (subs,notSubs) = (subset l, notSubset l)
           in if subs == [] then Nothing 
                            else case tsort notSubs of
                                Nothing -> Nothing
-                               Just list -> Just $ fstSubs ++ list
-            
+                               Just list -> Just $ fstSubs ++ (filter (\(x,_) -> x `notElem` (map fst notSubs)) sndSubs) ++ tsort list 
 
+testAll :: [(Int,Int)] -> Bool
+testAll list = let (l,r) = unzip list
+                   allElements = Set.fromList $ l ++ r in
+    case tsort list of
+        Just order -> Set.fromList order == allElements
+        Nothing -> True 
 
+testOrder :: [(Int, Int)] -> Bool
+testOrder constraints = case tsort constraints of
+    Nothing -> True 
+    Just order -> all satisfied constraints where
+        satisfied (a,b) = filter (`elem` [a,b]) order == [a,b]
 
 main = do
     print $ subset [(1,10),(40,3),(50,1)]
     print $ notSubset [(1,10),(40,3),(50,1)]
     print $ tsort [(1,10),(40,3),(50,1)]
+    print $ testAll [(1,10),(40,3),(50,1)]
+    print $ testOrder [(1,10),(40,3),(50,1)]
     quickCheck testnotSubset
     quickCheck testsubset
     quickCheck testnotSubset1
+    quickCheck testAll
+    quickCheck testOrder
