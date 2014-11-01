@@ -57,17 +57,23 @@ testnotSubset l = length (notSubset l ++ subset l) == length l
 testnotSubset1 :: [(Int,Int)] -> Bool 
 testnotSubset1 l = all (`notElem` subset l) (notSubset l)
 
-{-tsort :: Ord a => [(a,a)] -> Maybe [a] 
-tsort [] = [] 
-tsort [(a,b)] = [a,b] 
-tsort l = undefined  -}
-
+tsort :: Ord a => [(a,a)] -> Maybe [a] 
+tsort [] = Just []
+tsort [(a,b)] = Just [a,b] 
+tsort l = let (subs,notSubs) = (subset l, notSubset l)
+              (fstSubs, sndSubs) = unzip subs
+          in if subs == [] then Nothing 
+                           else case tsort notSubs of
+                               Nothing -> Nothing
+                               Just list -> Just $ fstSubs ++ list
+            
 
 
 
 main = do
     print $ subset [(1,10),(40,3),(50,1)]
     print $ notSubset [(1,10),(40,3),(50,1)]
+    print $ tsort [(1,10),(40,3),(50,1)]
     quickCheck testnotSubset
     quickCheck testsubset
     quickCheck testnotSubset1
