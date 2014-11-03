@@ -1,4 +1,6 @@
+import Data.List
 import Test.QuickCheck
+import Data.Maybe
 import Data.Ord 
 import qualified Data.Set as Set
 
@@ -39,7 +41,7 @@ subset :: Ord a => [(a,a)] -> [(a,a)]
 subset l = let (first,second) = unzip l
                setFirst = Set.fromList first
                setSecond = Set.fromList second
-               subs = Set.toList $ Set.difference setFirst setSecond in
+               subs = Set.toList $ Set.dif;ference setFirst setSecond in
            filter (\(x,_) -> x `elem` subs) l
 notSubset :: Ord a => [(a,a)] -> [(a,a)]
 notSubset [] = []
@@ -57,15 +59,33 @@ testnotSubset l = length (notSubset l ++ subset l) == length l
 testnotSubset1 :: [(Int,Int)] -> Bool 
 testnotSubset1 l = all (`notElem` subset l) (notSubset l)
 
-tsort :: Ord a => [(a,a)] -> Maybe [a] 
+
+rmDups :: Ord a => [a] -> [a] 
+rmDups [] = [] 
+rmDups [a] = [a] 
+rmDups (x : xs) = if x `elem` xs then rmDups xs else x : rmDups xs 
+
+{-tsort :: Ord a => [(a,a)] -> Maybe [a] 
 tsort [] = Just []
 tsort [(a,b)] = Just [a,b] 
 tsort l = let (subs,notSubs) = (subset l, notSubset l)
-              (fstSubs, sndSubs) = unzip subs
-          in if subs == [] then Nothing 
+              (fstSubs, sndSubs) = let (a,b) = unzip subs in
+                                   (rmDups a, rmDups b)
+          in if any (uncurry (==)) l || subs == [] then Nothing 
                            else case tsort notSubs of
                                Nothing -> Nothing
-                               Just list -> Just $ fstSubs ++ (filter (\(x,_) -> x `notElem` (map fst notSubs)) sndSubs) ++ tsort list 
+                               Just list -> Just $ fstSubs ++ (filter (`notElem` (map fst notSubs)) sndSubs) ++ list-} 
+tSort :: Ord a => Set a -> Set (a,a) -> Maybe [a] 
+tSort xs ys = case (Set.null xs,Set.null ys) of
+                   (True,True) -> Just []
+                   (True,False) -> Just []
+                   (False, True) -> Just Set.toList xs
+                   (False, False) -> case any (uncurry ==) ys of
+                                          True -> Nothing
+                                          False -> let (subs,notSubs) = (subset l, notSubset l)
+                                                       (fstSubs, sndSubs) = unzip subs
+                                                   in case  
+
 
 testAll :: [(Int,Int)] -> Bool
 testAll list = let (l,r) = unzip list
@@ -80,6 +100,10 @@ testOrder constraints = case tsort constraints of
     Just order -> all satisfied constraints where
         satisfied (a,b) = filter (`elem` [a,b]) order == [a,b]
 
+testDups :: [(Int, Int)] -> Bool 
+testDups l = let newl = fromMaybe [] (tsort l) in
+             newl == rmDups newl 
+
 main = do
     print $ subset [(1,10),(40,3),(50,1)]
     print $ notSubset [(1,10),(40,3),(50,1)]
@@ -91,3 +115,4 @@ main = do
     quickCheck testnotSubset1
     quickCheck testAll
     quickCheck testOrder
+    quickCheck testDups
