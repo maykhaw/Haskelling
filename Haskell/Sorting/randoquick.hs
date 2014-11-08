@@ -6,6 +6,14 @@ tuplefier [] = []
 tuplefier [a] = []
 tuplefier (x : y : xs) = (x,y) : tuplefier (y : xs) 
 
+tuplelist :: [(a,a)] -> [a]
+tuplelist [] = []
+tuplelist [(a,b)] = (a : b)
+tuplelist ((x,y) : xs) = x : tuplelist xs 
+
+testtuplelist :: [(Char,Char)] -> Bool 
+testtuplelist l = length (tuplelist l) == (length l + 1)
+
 rswap :: Ord a => [a] -> [a] 
 rswap [] = []
 rswap [a] = [a] 
@@ -22,7 +30,7 @@ testsort l = and $ map test (tuplefier l)
 rquick :: Ord a => [a] -> [a] 
 rquick [] = [] 
 rquick [a] = [a] 
-rquick l = if testsort l then l else rquick $ rswap l
+rquick l = if testsort l then l else  
 -- problem when the first element is the smallest element in list. so need to partition 
 
 testrquick :: [Char] -> Bool
@@ -30,3 +38,4 @@ testrquick l = rquick l == sort l
 main = do
     quickCheck testrs
     quickCheck testrquick
+    quickCheck testtuplelist 
