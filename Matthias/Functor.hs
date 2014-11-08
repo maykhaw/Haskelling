@@ -11,6 +11,13 @@ data Trivial a = Trivial
 instance Functor Trivial where
     fmap _ Trivial = Trivial
 
+data Trivial' b a = Trivial' b
+instance Functor (Trivial' b) where
+    fmap _ (Trivial' b) = Trivial' b
+
+instance Functor ((,) b) where
+    fmap f (b,a) = (b, f a)
+
 data Id a = Id a
 instance Functor Id where
     fmap f (Id a) = Id (f a)
