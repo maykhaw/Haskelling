@@ -8,8 +8,7 @@ packing (x : xs) = let (before,after) = break (/= x) (x : xs) in
 
 recursepack :: Eq a => [a] -> [[a]] 
 recursepack [] = [] 
-recursepack (x : xs) = case xs of
-
+recursepack (x : xs) 
 testpack1 l = l == concat (packing l) 
 
 testpack2 :: [Char] -> Bool
