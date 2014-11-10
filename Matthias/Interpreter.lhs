@@ -52,6 +52,8 @@ trees to feed into our tests.
 >                                     , Fork <$> arbTree (n `div` 2) <*> arbitrary <*> arbTree (n `div` 2)]
 
 > main = do
+>   sample (arbitrary :: Gen Term)
+>   putStrLn ""
 >   quickCheck testEval1
 >   quickCheck testEvalAdd
 >   quickCheck testEvalSub
