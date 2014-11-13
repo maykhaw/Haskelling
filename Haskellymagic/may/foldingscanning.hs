@@ -41,13 +41,6 @@ scanr' f terminal (x : xs) =
         [] -> error "Can't happen!"
         rest@(newv : _) -> f x newv : rest
 {-
-scanr'' :: (a -> b -> b) -> b -> [a] -> [b]
-scanr'' f t l = snd $ foldr f' t' l where
-    t' = (t, [t])
-    f' x (t, ts) = let x' = f x t
-                  in (x', x' : ts)
--}
-{-
 scanr' f terminal list = let sr l [] = l 
                              sr l (y : ys) = sr ys (y : l) in
                           undefined sr
@@ -58,14 +51,21 @@ testscanr :: Fun (Int, Int) Int -> Int -> [Int] -> Bool
 testscanr f' term l = scanr' f term l == scanr f term l where
     f a b = apply f' (a,b) 
 
+safehead :: [a] -> Maybe a
+safehead [] = Nothing
+safehead l = Just $ head l 
+
+rhead :: [a] -> a
+rhead l = foldr (\a b -> Just a) Nothing l
+
+testrhead :: [Char] -> Bool
+testrhead l = safehead l == rhead l 
 manytail :: [a] -> [[a]] 
 manytail [] = [[]]
 manytail (x : xs) = (x : xs) : manytail xs 
 
 testtails :: [Char] -> Bool
 testtails l = manytail l == tails l  
-
-
 
 rev :: [a] -> [a] 
 rev [] = [] 
@@ -74,9 +74,11 @@ rev (x : xs) = rev xs ++ [x]
 
 testreverse :: [Char] -> Bool
 testreverse l = rev l == reverse l 
+
 main = do
     quickCheck testscanl 
     quickCheck testreverse
     quickCheck testtails 
     quickCheck testr
     quickCheck testscanr
+    quickCheck testrhead
