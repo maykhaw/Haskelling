@@ -16,9 +16,19 @@ prop_unique2 l = length (unique2 l) <= 2
 -- uniquelist takes [Char] and returns the substring containing unique2    
 uniquelist :: String -> String
 uniquelist [] = [] 
--- uniquelist [a] = [a] 
 uniquelist l = takeWhile (`elem` unique2 l) l 
 
+newuniquelist :: String -> String
+newuniquelist l = helper [] l where
+    helper [] [] = []
+    helper [] (x:xs) = x : helper [x] xs
+    helper [a] (x:xs) = x : if a == x then helper [a] xs
+                                      else helper [a,x] xs
+    helper ab xs = takeWhile (\x -> x `elem` ab) xs
+
+                            
+prop_newunique :: String -> Bool
+prop_newunique l = uniquelist l == newuniquelist l 
 --testuniques takes [Char] and checks that it only contains up to 2 unique characters 
 prop_uniques :: String -> Bool
 -- TODO: Set.size
@@ -44,6 +54,50 @@ is2 s = Set.size (Set.fromList s) <= 2
 
 prop_simple :: String -> Bool
 prop_simple l = length (longsub l) == length (simple l)
+
+-- traverses the list only once 
+
+
+data Sofar a = None | One [a] | Two [a] [a]
+
+sofarToList :: Sofar a -> [a] 
+sofarToList None = []
+sofarToList (One a) = a
+sofarToList (Two a b) = a ++ b
+
+--traverse :: [String] -> [String]
+
+prop_updateSimple_Prefix :: String -> Bool
+prop_updateSimple_Prefix l = case foldr updateSimple None l of
+    None -> l == []
+    One x -> l == x
+    Two a b -> (a ++ b) `isPrefixOf` l
+
+prop_updateSimple_2 :: String -> Bool
+prop_updateSimple_2 l = case foldr updateSimple None l of
+    None -> True
+    One x -> 1 == Set.size (Set.fromList x)
+    Two a b -> (1 == Set.size (Set.fromList a))
+               && (2 >= Set.size (Set.fromList b))
+
+prop_updateSimple_Longest :: String -> Bool
+prop_updateSimple_Longest l = uniquelist l == sofarToList (foldr updateSimple None l)
+
+updateSimple :: Eq a => a -> Sofar a -> Sofar a
+updateSimple l = undefined 
+
+{-singletraverse :: String -> String 
+singletraverse l = let collect [] = [[]] 
+                       collect [x] = [[x]] 
+                       collect (x : y : xs) = case x == y of
+                            True -> case collect (y : xs) of
+                                [] -> y : collect xs 
+                            [] -> y 
+                            False -> [x] : collect (y : xs) 
+                       newl = collect l in 
+                   maximumBy (comparing length) newl -}
+                       
+
 
 return []
 testAll :: IO Bool
