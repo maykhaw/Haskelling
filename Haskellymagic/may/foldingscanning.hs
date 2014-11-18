@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 import Test.QuickCheck
 import Test.QuickCheck.Function
 import Data.List
@@ -5,17 +6,24 @@ import Data.List
 scanl' :: (a -> b -> a) -> a -> [b] -> [a]
 scanl' f initial [] = [initial]
 scanl' f initial (x : xs) = initial : scanl' f (f initial x) xs  
-
-testscanl :: Fun (Int, Int)  Int -> Int -> [Int] -> Bool 
-testscanl f' init l = scanl' f init l == scanl f init l where
+-- scanl' f initial l = initial : case l of
+--     [] -> []
+--     (x : xs) -> scanl' f (f initial x) xs  
+-- 
+prop_scanl :: Fun (Int, Int)  Int -> Int -> [Int] -> Bool 
+prop_scanl f' init l = scanl' f init l == scanl f init l where
     f a b = apply f' (a,b)
 
 lfold :: (a -> b -> a) -> a -> [b] -> a 
 lfold f initial [] = initial 
 lfold f initial (x : xs) = lfold f (f initial x) xs 
 
-testr :: Fun (Int, Int) Int -> Int -> [Int] -> Bool 
-testr f' init l = head (scanr f init l) == foldr f init l where 
+prop_foldl :: Fun (Int, Int)  Int -> Int -> [Int] -> Bool 
+prop_foldl f' init l = foldl f init l == lfold f init l where
+    f a b = apply f' (a,b)
+
+prop_r :: Fun (Int, Int) Int -> Int -> [Int] -> Bool 
+prop_r f' init l = head (scanr f init l) == foldr f init l where 
     f a b = apply f' (a,b)
 
 scanr' :: (a -> b -> b) -> b -> [a] -> [b] 
@@ -51,8 +59,8 @@ scanr' f terminal list = let sr l [] = l
 -}
                            
 
-testscanr :: Fun (Int, Int) Int -> Int -> [Int] -> Bool
-testscanr f' term l = scanr' f term l == scanr f term l where
+prop_scanr :: Fun (Int, Int) Int -> Int -> [Int] -> Bool
+prop_scanr f' term l = scanr' f term l == scanr f term l where
     f a b = apply f' (a,b) 
 
 safehead :: [a] -> Maybe a
@@ -62,45 +70,43 @@ safehead l = Just $ head l
 rhead :: [a] -> Maybe a  
 rhead l = foldr (\a b -> Just a) Nothing l
 
-testrhead :: [Char] -> Bool
-testrhead l = safehead l == rhead l 
+prop_rhead :: [Char] -> Bool
+prop_rhead l = safehead l == rhead l 
 
 lhead :: Eq a => [a] -> Maybe a 
 lhead l = foldl (\a b -> if a == Nothing then Just b else a) Nothing l 
 
-testlhead :: [Char] -> Bool
-testlhead l = lhead l == safehead l 
+prop_lhead :: [Char] -> Bool
+prop_lhead l = lhead l == safehead l 
 
 manytail :: [a] -> [[a]] 
 manytail [] = [[]]
 manytail (x : xs) = (x : xs) : manytail xs 
 
-ltail :: [a] -> [a] 
-ltail l = foldl (\a b -> if null a then b else accum a b) [] l 
-    where accum a b = (a : b) 
-          accum a b 
 
+-- ltail :: [a] -> [a] 
+-- ltail l = foldl (\a b -> if null a then b else accum a b) [] l 
+--     where accum a b = (a : b) 
+--           accum a b = undefined
+-- 
 
 rtail :: [a] -> [a] 
-rtail l = foldr (\a b -> ) [] l 
-    where helper 
+rtail l = foldr (\a b -> undefined) [] l 
+    where helper = undefined
 
-testtails :: [Char] -> Bool
-testtails l = manytail l == tails l  
+prop_tails :: [Char] -> Bool
+prop_tails l = manytail l == tails l  
 
 rev :: [a] -> [a] 
 rev [] = [] 
 rev [a] = [a] 
 rev (x : xs) = rev xs ++ [x] 
 
-testreverse :: [Char] -> Bool
-testreverse l = rev l == reverse l 
+prop_reverse :: [Char] -> Bool
+prop_reverse l = rev l == reverse l 
+
+return []
+runTests = $quickCheckAll
 
 main = do
-    quickCheck testscanl 
-    quickCheck testreverse
-    quickCheck testtails 
-    quickCheck testr
-    quickCheck testscanr
-    quickCheck testrhead
-    quickCheck testlhead
+    runTests
