@@ -10,6 +10,10 @@ testscanl :: Fun (Int, Int)  Int -> Int -> [Int] -> Bool
 testscanl f' init l = scanl' f init l == scanl f init l where
     f a b = apply f' (a,b)
 
+lfold :: (a -> b -> a) -> a -> [b] -> a 
+lfold f initial [] = initial 
+lfold f initial (x : xs) = lfold f (f initial x) xs 
+
 testr :: Fun (Int, Int) Int -> Int -> [Int] -> Bool 
 testr f' init l = head (scanr f init l) == foldr f init l where 
     f a b = apply f' (a,b)
@@ -55,14 +59,31 @@ safehead :: [a] -> Maybe a
 safehead [] = Nothing
 safehead l = Just $ head l 
 
-rhead :: [a] -> a
+rhead :: [a] -> Maybe a  
 rhead l = foldr (\a b -> Just a) Nothing l
 
 testrhead :: [Char] -> Bool
 testrhead l = safehead l == rhead l 
+
+lhead :: Eq a => [a] -> Maybe a 
+lhead l = foldl (\a b -> if a == Nothing then Just b else a) Nothing l 
+
+testlhead :: [Char] -> Bool
+testlhead l = lhead l == safehead l 
+
 manytail :: [a] -> [[a]] 
 manytail [] = [[]]
 manytail (x : xs) = (x : xs) : manytail xs 
+
+ltail :: [a] -> [a] 
+ltail l = foldl (\a b -> if null a then b else accum a b) [] l 
+    where accum a b = (a : b) 
+          accum a b 
+
+
+rtail :: [a] -> [a] 
+rtail l = foldr (\a b -> ) [] l 
+    where helper 
 
 testtails :: [Char] -> Bool
 testtails l = manytail l == tails l  
@@ -82,3 +103,4 @@ main = do
     quickCheck testr
     quickCheck testscanr
     quickCheck testrhead
+    quickCheck testlhead
