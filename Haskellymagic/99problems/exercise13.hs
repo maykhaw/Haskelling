@@ -10,6 +10,8 @@ encode [] = []
     (y : ys) -> if x == y then case ys of
                                [] -> [Right (2,x)]
                                (b : bs) -> -}
+encode 
+
 packing :: Eq a => [a] -> [[a]]
 packing [] = [] 
 packing (x : y : xs) = if x == y then x : y : packing xs 

@@ -29,25 +29,43 @@ rpack (x : xs) = case rpack xs of
                     then   (x : z : zs) : ys
                     else [x] : (z : zs) : ys
 
+rpack', rpack'' :: Eq a => [a] -> [[a]]
+rpack' [] = []
+rpack' (x : xs) = helper x (rpack xs)
+
+rpack'' = foldr helper []
+
+helper :: Eq a => a -> [[a]] -> [[a]]
+helper x rest = case rest of
+    [] -> [[x]]
+    (y : ys) -> case y of
+        [] -> error "Can never happen" -- [x] : ys
+        (z : zs) -> if x == z
+                    then   (x : z : zs) : ys
+                    else [x] : (z : zs) : ys
+
+
 prop_rpack :: [Int] -> Property
 prop_rpack l = rpack l === packing l
 
-prop_pack1 :: [Char] -> Bool
+prop_pack1 :: String -> Bool
 prop_pack1 l = l == concat (packing l) 
 
-prop_pack2 :: [Char] -> Bool
+prop_pack2 :: String -> Bool
 prop_pack2 l = case packing l of
-    (x : y : xs) -> last x /= head y
+    (x : y : _) -> last x /= head y
     _ -> True
 
-prop_pack3 :: [Char] -> Bool
+prop_pack3 :: String -> Bool
 prop_pack3 l = group l == packing l
 
 -- prop_pack4 :: [Char] -> Bool 
 -- prop_pack4 l = group l == recursepack l
 
 return []
+runTests :: IO Bool
 runTests = $quickCheckAll
 
-main = do
+main :: IO Bool
+main = 
     runTests

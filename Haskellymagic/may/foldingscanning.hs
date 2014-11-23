@@ -83,15 +83,19 @@ manytail :: [a] -> [[a]]
 manytail [] = [[]]
 manytail (x : xs) = (x : xs) : manytail xs 
 
+
+-- ltail :: [a] -> [a] 
+-- ltail l = foldl (\a b -> if null a then b else accum a b) [] l 
+--     where accum a b = (a : b) 
+--           accum a b = undefined
+-- 
+
+rtail :: [a] -> [a] 
+rtail l = foldr (\a b -> undefined) [] l 
+    where helper = undefined
+
 prop_tails :: [Char] -> Bool
 prop_tails l = manytail l == tails l  
-
-safetail :: [a] -> Maybe [a] 
-safetail [] = Nothing
-safetail [a] = Just [] 
-safetail (x : xs) = Just xs 
-
-
 
 rev :: [a] -> [a] 
 rev [] = [] 
