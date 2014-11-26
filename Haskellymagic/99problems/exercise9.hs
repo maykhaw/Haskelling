@@ -7,18 +7,6 @@ packing [] = []
 packing (x : xs) = let (before,after) = break (/= x) (x : xs) in 
                    before : packing after 
 
--- recursepack :: Eq a => [a] -> [[a]] 
--- recursepack [] = [] 
--- recursepack (x : xs) = case xs of
---     [] -> [[x]]
---     (y : ys) -> if y == x then x : y : case ys of
---                                 [] -> [[x,y]]
---                                 [a] -> if a == y then [[x,y,b]]
---                                                  else [x,y] 
---                                                      : recursepackys
---                                 (b : bs) -> if b == y then x
---                           else [x] : recursepack (y : ys) 
-
 rpack :: Eq a => [a] -> [[a]]
 rpack [] = []
 rpack (x : xs) = case rpack xs of
@@ -34,6 +22,18 @@ rpack' [] = []
 rpack' (x : xs) = helper x (rpack xs)
 
 rpack'' = foldr helper []
+
+rpack'' [x] = foldr helper [] [x]
+            = helper x []
+            = [[x]] 
+
+{-rpack'' (x:y:[]) = foldr helper [] (x : y : []) 
+           `     = helper x $ foldr helper [] (y : []) 
+                 = helper x $ helper y $ foldr helper [] []
+                 = helper x $ helper y []
+                 = helper x [[y]]
+                 = if x == y then [[x : y]]
+                             else [[x],[y]] -}
 
 helper :: Eq a => a -> [[a]] -> [[a]]
 helper x rest = case rest of

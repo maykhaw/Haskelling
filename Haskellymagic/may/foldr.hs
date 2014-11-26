@@ -20,7 +20,7 @@ revr' l = foldr f id l []
           f a b = b . (a :)
 
 pointFreeRev :: [a] -> [a]
-pointFreeRev = (foldr (.) id . map (:)) []
+pointFreeRev l = foldr (.) id (map (:) l) []
    
 prop_revr :: [Char] -> Bool
 prop_revr l = reverse l == revr l 

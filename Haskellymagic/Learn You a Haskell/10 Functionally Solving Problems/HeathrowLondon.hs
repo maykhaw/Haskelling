@@ -1,4 +1,4 @@
-        
+
 
 data Node = Node Road Road | EndNode Road
 data Road = Road Int Node
@@ -12,6 +12,8 @@ heathrowToLondon = [Section 50 10 30, Section 5 90 20, Section 40 2 25, Section 
 data Label = A | B | C deriving (Show) 
 type Path = [(Label, Int)]
 
+optimalPath :: RoadSystem -> Path
+optimalPath 
 
 main :: IO
 main = 
