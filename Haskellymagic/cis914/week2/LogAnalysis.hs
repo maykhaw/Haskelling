@@ -13,13 +13,13 @@ parseMessage l = helper $ words l where
 
 mStamp :: LogMessage -> TimeStamp
 mStamp (LogMessage _ timestamp _) = timestamp
-mStamp _ = error "Unknown String"
+mStamp _ = 1000  
 
 mType :: LogMessage -> MessageType 
 mType (LogMessage messagetype _ _) = messagetype 
-mType _ = error "Unknown String" 
+mType l = Unknown l 
 
-mcompare :: LogMessage -> LogMessage -> Ord 
+mcompare :: LogMessage -> LogMessage -> Ordering
 mcompare a b = case (mType a, mType b) of
     (Info, Warning) -> GT 
     (Info, Error i) -> GT 
