@@ -1,5 +1,14 @@
 {-# LANGUAGE TemplateHaskell #-}
 import Test.QuickCheck
+import Test.QuickCheck.Function
+
+foldr' :: (a -> b -> b) -> b -> [a] -> b 
+foldr' _ term [] = term 
+foldr' f term (x : xs) = f x (foldr' f term xs)  
+
+prop_fold :: Fun (Int, Int) Int -> Int -> [Int] -> Bool
+prop_fold f term l = foldr f' term l == foldr' f' term l 
+    where f' a b = apply f (a,b) 
 
 encodeR :: Eq a => [a] -> [(Int, a)]
 encodeR [] = []
@@ -9,6 +18,12 @@ encodeR (x : xs) = case encodeR xs of
         if x == y
         then (i+1, y) : ys
         else (1, x) : (i, y) : ys
+
+encodeFoldr :: Eq a => [a] -> [(Int, a)]
+encodeFoldr l = foldr helper [] l where
+    helper x [] = [(x,1)] 
+    helper x ((i,y) : ys) = if x == y then ((i + 1,y) : ys)
+                                      else ((1,x) : (i,y) : ys)  
 
 encodeL :: Eq a => [a] -> [(Int, a)]
 encodeL = reverse . helper [] where
