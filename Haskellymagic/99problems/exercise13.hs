@@ -20,10 +20,13 @@ encodeR (x : xs) = case encodeR xs of
         else (1, x) : (i, y) : ys
 
 encodeFoldr :: Eq a => [a] -> [(Int, a)]
-encodeFoldr l = foldr helper [] l where
-    helper x [] = [(x,1)] 
-    helper x ((i,y) : ys) = if x == y then ((i + 1,y) : ys)
-                                      else ((1,x) : (i,y) : ys)  
+encodeFoldr = foldr helper [] where
+    helper x [] = [(1,x)] 
+    helper x ((i,y) : ys) = if x == y then (i + 1,y) : ys
+                                      else (1,x) : (i,y) : ys  
+
+prop_enFoldr :: [Char] -> Bool 
+prop_enFoldr l = encodeR l == encodeFoldr l 
 
 encodeL :: Eq a => [a] -> [(Int, a)]
 encodeL = reverse . helper [] where
@@ -35,6 +38,24 @@ encodeL = reverse . helper [] where
         then helper ((i+1,y) : ys) xs
         else helper ((1,x) : (i,y) : ys) xs
 
+foldl' :: (a -> b -> a) -> a -> [b] -> a 
+foldl' _ init [] = init 
+foldl' f init (x : xs) = foldl' f (f init x) xs 
+
+prop_foldl :: Fun (Int, Int) Int -> Int -> [Int] -> Bool 
+prop_foldl f init l = foldl f' init l == foldl' f' init l 
+    where f' a b = apply f (a,b) 
+
+encodeFoldl :: Eq a => [a] -> [(Int, a)] 
+encodeFoldl = reverse . foldl helper [] where
+    helper :: Eq a => [(Int,a)] -> a -> [(Int,a)] 
+    helper [] x = [(1,x)] 
+    helper ((i,y) : ys) x = if y == x then ((i+1, y) : ys) 
+                                             else ((1,x):(i,y):ys) 
+
+
+prop_enFoldl :: [Char] -> Bool 
+prop_enFoldl l = encodeR l == encodeFoldl l 
 
 -- This is a crazy way to use foldl to walk the list only once.
 -- (Don't use.  The foldr way is saner.)
