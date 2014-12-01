@@ -23,10 +23,14 @@ prop_Eve3 :: (Positive Int) -> [Int] -> Bool
 prop_Eve3 (Positive n) l = let ll = length l in 
                            length (dropEve n l) == (ll - ll `div` n) 
 
+foldr' :: (a -> b -> b) -> b -> [a] -> b 
+foldr' _ term [] = term 
+foldr' f term (x : xs) = f x (foldr' f term xs)  
 
 dropFoldr :: Int -> [a] -> [a] 
 dropFoldr = foldr helper [] where 
     helper 
+
 return []
 runTests = $quickCheckAll 
 
