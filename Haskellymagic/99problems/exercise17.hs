@@ -9,14 +9,25 @@ prop_split :: Int -> [Char] -> Bool
 prop_split n l = let (a,b) = split' n l in 
                  a ++ b == l
 
-foldl' :: (a -> b -> a) -> a -> [b] -> a 
-foldl' _ initial [] = initial
-foldl' f initial (x : xs) = foldl' f (f initial x) xs 
+prop_at :: Int -> [Char] -> Bool 
+prop_at n l = split' n l == splitAt n l 
 
-splitfold :: Int -> [a] -> ([a],[a])
-splitfold n l = foldl helper ([],[]) l 
-    where helper :: ([a],[a]) -> b -> ([a],[a]) 
-          helper ([],[]) b = 
+splitter :: Int -> [a] -> ([a],[a])
+splitter n l = let helper :: ([a],[a]) -> (Int,a) -> ([a],[a]) 
+                   helper ([],[]) (x,y) = if x <= n then ([y],[])
+                                                    else ([],[y]) 
+                   helper (as, []) (x,y) = if x <= n then (y : as, []) 
+                                                     else (as,[y]) 
+                   helper (as,bs) (x,y) = if x <= n then (y : as, bs) 
+                                                    else (as, y : bs)
+                   (xs,ys) = foldl helper ([],[]) (zip [1..] l) in 
+                (reverse xs, reverse ys) 
+
+prop_splitter :: Int -> [Char] -> Bool 
+prop_splitter n l = splitAt n l == splitter n l 
+
+splittex :: Int -> [a] -> ([a],[a])
+splittex n l = undefined 
 
 return []
 runTests = $quickCheckAll

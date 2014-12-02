@@ -27,9 +27,6 @@ foldr' :: (a -> b -> b) -> b -> [a] -> b
 foldr' _ term [] = term 
 foldr' f term (x : xs) = f x (foldr' f term xs)  
 
-dropFoldr :: Int -> [a] -> [a] 
-dropFoldr = foldr helper [] where 
-    helper 
 
 return []
 runTests = $quickCheckAll 
