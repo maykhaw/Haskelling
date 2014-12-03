@@ -27,7 +27,17 @@ prop_splitter :: Int -> [Char] -> Bool
 prop_splitter n l = splitAt n l == splitter n l 
 
 splittex :: Int -> [a] -> ([a],[a])
-splittex n l = undefined 
+splittex n l = foldr helper ([],[]) (zip [1..] l) 
+    where helper (x,y) ([],[]) = if x <= n then ([y],[]) 
+                                           else ([],[y])
+          helper (x,y) (as,[]) = if x <= n then (y:as, []) 
+                                           else (as,[y]) 
+          helper (x,y) (as,bs) = if x <= n then (y:as,bs) 
+                                           else (as,y:bs) 
+
+ 
+prop_splittex :: Int -> [Char] -> Bool 
+prop_splittex n l = splittex n l == splitAt n l 
 
 return []
 runTests = $quickCheckAll
