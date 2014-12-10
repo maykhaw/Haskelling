@@ -1,10 +1,11 @@
 {-# LANGUAGE TemplateHaskell #-} 
+{-# LANGUAGE TupleSections #-}
 import Data.Maybe
 import Test.QuickCheck 
 import Data.List 
 
-data Rectangle = Rectangle Int Int Int deriving (Ord, Eq, Show)
-data Coords = Coords Int Int deriving (Ord, Eq, Show)
+data Rectangle = Rectangle { left :: Int, right :: Int, top :: Int } deriving (Ord, Eq, Show)
+data Coords = Coords { x :: Int, y :: Int } deriving (Ord, Eq, Show)
 
 instance Arbitrary Rectangle where
     arbitrary = do
@@ -19,8 +20,8 @@ instance Arbitrary Coords where
         NonNegative y <- arbitrary
         return $ Coords x y
    
-doubleHeight :: Rectangle -> Rectangle 
-doubleHeight (Rectangle a b c) = Rectangle a b (2 * c) 
+nHeight :: Int -> Rectangle -> Rectangle 
+nHeight n (Rectangle a b c) = Rectangle a b (n * c) 
 
 
 rectCoord :: Rectangle -> [Coords] 
@@ -36,6 +37,7 @@ coordList l = concatMap rectCoord l
 overlap :: Rectangle -> Rectangle -> Maybe Rectangle 
 overlap (Rectangle a b c) (Rectangle x y z) = let height = min c z in 
                                               if Rectangle a b c == Rectangle x y z then Just $ Rectangle x y z else 
+                                                -- TODO: use Data.List.lookup (sort [a,b,x,y]) [([a,b,x,y], Nothing), ...]
                                                 case sort [a,b,x,y] of 
                                                     [a,b,x,y] -> Nothing 
                                                     [a,x,b,y] -> if x == b then Nothing else Just $ Rectangle x b height
@@ -43,14 +45,27 @@ overlap (Rectangle a b c) (Rectangle x y z) = let height = min c z in
                                                     [x,y,a,b] -> Nothing 
                                                     [x,a,y,b] -> if a == y then Nothing else Just $ Rectangle a y height 
                                                     [x,a,b,y] -> Just $ Rectangle a b height 
+
+nonoverlap :: Rectangle -> Rectangle -> Maybe [Rectangle] 
+nonoverlap (Rectangle a b c) (Rectangle x y z) = if Rectangle a b c == Rectangle x y z 
+                                                    then Nothing 
+                                                    else case (compare a x, compare b y, compare c z) of 
+                                                                            
+
+foldllap :: [Rectangle] -> [Rectangle]  
+foldllap l = concatMaybe $ foldl helper [] l 
+                where helper [] a = [a] 
+                      helper [a] b = [a, nonOverlap a b]  
+                        
+
 prop_overlap1 :: Rectangle -> Rectangle -> Bool 
 prop_overlap1 a b = overlap a b == overlap b a 
 
 combomaker :: [a] -> [(a,a)] 
 combomaker [] = [] 
-combomaker [_] = []
-combomaker (x : xs) = map (\y -> (x,y)) xs ++ combomaker xs 
+combomaker (x : xs) = map (x,) xs ++ combomaker xs 
 
+-- That's a built-in function, Data.List.nub. :o)
 removeDups :: Eq a => [a] -> [a] 
 removeDups [] = [] 
 removeDups [a] = [a] 
@@ -67,11 +82,11 @@ skylinearea :: [Rectangle] -> Int
 skylinearea l = let newlist = removeDups l in 
                 sum (map area newlist) - sum (map area (overlapList newlist))
 
-prop_sky1 :: [Rectangle] -> [Rectangle] -> Bool 
-prop_sky1 a b = skylinearea (a ++ b) >= skylinearea a && skylinearea (a ++ b) >= skylinearea b 
+prop_sky1 :: [[Rectangle]] -> Bool 
+prop_sky1 rs = skylinearea (concat rs) >= maximum (0 : map skylinearea rs)
 
-prop_skyheight :: [Rectangle] -> Property 
-prop_skyheight l = 2 * skylinearea l === skylinearea (map doubleHeight l) 
+prop_skyheight :: NonNegative Int -> [Rectangle] -> Property 
+prop_skyheight (NonNegative n) l = n * skylinearea l === skylinearea (map (nHeight n) l) 
 
 prop_skyx :: [Rectangle] -> Property 
 prop_skyx l = skylinearea l === skylinearea (l ++ l) 
