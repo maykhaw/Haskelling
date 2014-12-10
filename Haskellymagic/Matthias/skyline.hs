@@ -87,14 +87,40 @@ skylinearea :: [Rectangle] -> Int
 skylinearea l = let newlist = removeDups l in
                 sum (map area newlist) - sum (map area (overlapList newlist))
 
+prop_same :: [Rectangle] -> Property
+prop_same a = skylinearea a === skylinearea (a ++ a)
+
+prop_bigger :: Positive Int -> Rectangle -> Property
+prop_bigger (Positive n) l@(Rectangle a b c) =
+    conjoin $ map (\r -> s [r,l] === s [r])
+        [Rectangle (a+n) b c
+        ,Rectangle a (b+n) c
+        ,Rectangle a b (c+n)]
+    where s = skylinearea
+
 prop_sky1 :: [[Rectangle]] -> Bool
 prop_sky1 rs = skylinearea (concat rs) >= maximum (0 : map skylinearea rs)
+
+prop_sub :: [[Rectangle]] -> Bool
+prop_sub a = sum (map skylinearea a) >= skylinearea (concat a)
+
+prop_sub1 :: [Rectangle] -> Bool
+prop_sub1 a = sum (map area a) >= skylinearea a
 
 prop_skyheight :: NonNegative Int -> [Rectangle] -> Property
 prop_skyheight (NonNegative n) l = n * skylinearea l === skylinearea (map (nHeight n) l)
 
+prop_max :: [[Rectangle]] -> Bool
+prop_max a = maximum (0 : map skylinearea a) <= skylinearea (concat a)
+
+prop_max1 :: [Rectangle] -> Bool
+prop_max1 a = maximum (0 : map area a) <= skylinearea a
+
 prop_skyx :: [Rectangle] -> Property
 prop_skyx l = skylinearea l === skylinearea (l ++ l)
+
+prop_order :: [Rectangle] -> [Rectangle] -> Property
+prop_order a b = skylinearea (a++b) === skylinearea (b++a)
 
 prop_pos :: [Rectangle] -> Bool
 prop_pos l = skylinearea l >= 0
