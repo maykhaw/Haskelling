@@ -2,6 +2,7 @@
 import Data.Maybe
 import Test.QuickCheck
 import Data.List
+import Control.Applicative
 
 data Rectangle = Rectangle Int Int Int deriving (Ord, Eq, Show)
 data Coords = Coords Int Int deriving (Ord, Eq, Show)
@@ -12,6 +13,10 @@ instance Arbitrary Rectangle where
         NonNegative left <- arbitrary
         NonNegative width <- arbitrary
         return $ Rectangle left (left + width) h
+    shrink (Rectangle l r t) = mapMaybe nf $ Rectangle <$> shrink l <*> shrink r <*> shrink t
+
+nf rect@(Rectangle l r t) | l <= r = Just rect
+                          | otherwise = Nothing
 
 instance Arbitrary Coords where
     arbitrary = do
