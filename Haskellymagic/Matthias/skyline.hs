@@ -4,6 +4,7 @@ import Data.Maybe
 import Test.QuickCheck
 import Data.List
 import Control.Applicative
+import Control.Monad (join)
 
 data Rectangle = Rectangle { left :: Int, right :: Int, top :: Int } deriving (Ord, Eq, Show)
 data Coords = Coords { x :: Int, y :: Int } deriving (Ord, Eq, Show)
@@ -42,14 +43,13 @@ coordList l = concatMap rectCoord l
 overlap :: Rectangle -> Rectangle -> Maybe Rectangle
 overlap (Rectangle a b c) (Rectangle x y z) = let height = min c z in
                                               if Rectangle a b c == Rectangle x y z then Just $ Rectangle x y z else
-                                                -- TODO: use Data.List.lookup (sort [a,b,x,y]) [([a,b,x,y], Nothing), ...]
-                                                case sort [a,b,x,y] of
-                                                    [a,b,x,y] -> Nothing
-                                                    [a,x,b,y] -> if x == b then Nothing else Just $ Rectangle x b height
-                                                    [a,x,y,b] -> Just $ Rectangle x y height
-                                                    [x,y,a,b] -> Nothing
-                                                    [x,a,y,b] -> if a == y then Nothing else Just $ Rectangle a y height
-                                                    [x,a,b,y] -> Just $ Rectangle a b height
+                                                join $ lookup (sort [a,b,x,y])
+                                                    [([a,b,x,y], Nothing)
+                                                    ,([a,x,b,y], if x == b then Nothing else Just $ Rectangle x b height)
+                                                    ,([a,x,y,b], Just $ Rectangle x y height)
+                                                    ,([x,y,a,b], Nothing)
+                                                    ,([x,a,y,b], if a == y then Nothing else Just $ Rectangle a y height)
+                                                    ,([x,a,b,y], Just $ Rectangle a b height)]
 
 nonoverlap :: Rectangle -> Rectangle -> Maybe [Rectangle]
 nonoverlap (Rectangle a b c) (Rectangle x y z) = if Rectangle a b c == Rectangle x y z
