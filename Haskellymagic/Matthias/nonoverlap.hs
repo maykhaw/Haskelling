@@ -3,6 +3,7 @@
 import Data.Maybe
 import Test.QuickCheck
 import Data.List
+import qualified Data.Set as Set 
 import Control.Applicative
 import Control.Monad (join)
 
@@ -15,7 +16,7 @@ instance Arbitrary Rectangle where
         NonNegative left <- arbitrary
         NonNegative width <- arbitrary
         return $ Rectangle left (left + width) h
-    shrink (Rectangle l r t) = mapMaybe nf $ Rectangle <$> shrink l <*> shrink r <*> shrink t
+    shrink rect@(Rectangle l r t) = filter (/= rect) $ mapMaybe nf $ Rectangle <$> l : shrink l <*> r : shrink r <*> t : shrink t
 
 nf rect@(Rectangle l r t) | l <= r = Just rect
                           | otherwise = Nothing
@@ -40,10 +41,10 @@ coordList :: [Rectangle] -> [Coords]
 coordList [] = []
 coordList l = concatMap rectCoord l
 
---nonoverlap compares two Rectangles and returns a list of all the rectangles, excluding any overlaps 
+--nonoverlap compares two Rectangles and returns a list of all the rectangles, excluding any overlaps
 nonoverlap :: Rectangle -> Rectangle -> [Rectangle]
 nonoverlap m n = let [Rectangle a b c, Rectangle x y z] = sort [m, n]
-                     maxim = max c z in 
+                     maxim = max c z in
                                                  fromMaybe undefined $ lookup (sort [a,b,x,y])
                                                         [([a,b,x,y], [Rectangle a b c, Rectangle x y z])
                                                         ,([a,x,b,y], if x == b then [Rectangle a b c, Rectangle x y z]
@@ -51,53 +52,50 @@ nonoverlap m n = let [Rectangle a b c, Rectangle x y z] = sort [m, n]
                                                         ,([a,x,y,b], if maxim == c then [Rectangle a b c]
                                                                                    else [Rectangle a x c, Rectangle x y z, Rectangle y b c])]
 
-prop_nonlapreverse :: Rectangle -> Rectangle -> Bool 
-prop_nonlapreverse a b = nonoverlap a b == nonoverlap b a 
+prop_nonlapreverse :: Rectangle -> Rectangle -> Bool
+prop_nonlapreverse a b = nonoverlap a b == nonoverlap b a
 
-prop_nonlaparea :: Rectangle -> Rectangle -> Bool 
-prop_nonlaparea a b = map area (nonoverlap a b) <= map area [a,b] 
+prop_nonlaparea :: Rectangle -> Rectangle -> Bool
+prop_nonlaparea a b = sum (map area (nonoverlap a b)) <= sum (map area [a,b])
+
+myNub :: Ord a => [a] -> [a]
+myNub = Set.toList . Set.fromList 
 
 foldllap :: [Rectangle] -> [Rectangle]
-foldllap l = foldl helper [] (sort (nub l))  
-                where helper :: [Rectangle] -> Rectangle -> [Rectangle] 
-                      helper [] a = [a]  
-                      helper [a] b = nonoverlap a b
-                      helper l b = concat $ map (nonoverlap b) l 
+foldllap l = foldl helper [] (sort (myNub l)) 
+                 where helper :: [Rectangle] -> Rectangle -> [Rectangle]
+                       helper [] a = [a]
+                       helper l b = myNub $ concat $ map (nonoverlap b) l 
 
-prop_foldllapnub :: [Rectangle] -> Property 
-prop_foldllapnub l = foldllap l === nub (foldllap l) 
+prop_foldllapnub :: [Rectangle] -> Property
+prop_foldllapnub l = foldllap l === nub (foldllap l)
 
-skyfoldl :: [Rectangle] -> Int 
-skyfoldl l = sum $ map area $ foldllap l 
+prop_foldllap2 :: [Rectangle] -> Property 
+prop_foldllap2 l = foldllap (foldllap l) === foldllap l 
 
-overlap :: Rectangle -> Rectangle -> Maybe Rectangle
-overlap m n  = let height = min c z
-                   [(Rectangle a b c), (Rectangle x y z)] = sort [m,n] in 
-               if Rectangle a b c == Rectangle x y z then Just $ Rectangle x y z else
-                                                join $ lookup (sort [a,b,x,y])
-                                                    [([a,b,x,y], Nothing)
-                                                    ,([a,x,b,y], if x == b then Nothing else Just $ Rectangle x b height)
-                                                    ,([a,x,y,b], Just $ Rectangle x y height)] 
+hasOverlaps :: [Rectangle] -> Bool 
+hasOverlaps l = let overlap :: Rectangle -> Rectangle -> Bool 
+                    overlap (Rectangle _ b _) (Rectangle x _ _) = b > x  
+                    newlist = neighbours $ sort l in 
+               any (uncurry overlap) newlist 
 
-prop_overlap1 :: Rectangle -> Rectangle -> Bool
-prop_overlap1 a b = overlap a b == overlap b a
+neighbours :: [a] -> [(a,a)] 
+neighbours l = zip l (tail l) 
 
-combomaker :: [a] -> [(a,a)]
-combomaker [] = []
-combomaker (x : xs) = map (x,) xs ++ combomaker xs
+prop_foldloverlaps :: [Rectangle] -> Bool 
+prop_foldloverlaps l = not.hasOverlaps $ foldllap l  
 
-overlapList :: [Rectangle] -> [Rectangle]
-overlapList l = mapMaybe (uncurry overlap) $ combomaker $ nub l
+
 
 area :: Rectangle -> Int
 area (Rectangle x y z) = z * (y - x)
 
-skylinearea :: [Rectangle] -> Int
-skylinearea l = let newlist = nub l in
-                sum (map area newlist) - sum (map area (overlapList newlist))
+skyfoldl :: [Rectangle] -> Int
+skyfoldl l = sum $ map area $ foldllap l
+
 
 prop_same :: [Rectangle] -> Property
-prop_same a = skylinearea a === skylinearea (a ++ a)
+prop_same a = skyfoldl a === skyfoldl (a ++ a)
 
 prop_bigger :: Positive Int -> Rectangle -> Property
 prop_bigger (Positive n) l@(Rectangle a b c) =
@@ -105,38 +103,38 @@ prop_bigger (Positive n) l@(Rectangle a b c) =
         [Rectangle (a+n) b c
         ,Rectangle a (b+n) c
         ,Rectangle a b (c+n)]
-    where s = skylinearea
+    where s = skyfoldl
 
 prop_sky1 :: [[Rectangle]] -> Bool
-prop_sky1 rs = skylinearea (concat rs) >= maximum (0 : map skylinearea rs)
+prop_sky1 rs = skyfoldl (concat rs) >= maximum (0 : map skyfoldl rs)
 
 prop_sub :: [[Rectangle]] -> Bool
-prop_sub a = sum (map skylinearea a) >= skylinearea (concat a)
+prop_sub a = sum (map skyfoldl a) >= skyfoldl (concat a)
 
 prop_sub1 :: [Rectangle] -> Bool
-prop_sub1 a = sum (map area a) >= skylinearea a
+prop_sub1 a = sum (map area a) >= skyfoldl a
 
 prop_skyheight :: NonNegative Int -> [Rectangle] -> Property
-prop_skyheight (NonNegative n) l = n * skylinearea l === skylinearea (map (nHeight n) l)
+prop_skyheight (NonNegative n) l = n * skyfoldl l === skyfoldl (map (nHeight n) l)
 
 prop_max :: [[Rectangle]] -> Bool
-prop_max a = maximum (0 : map skylinearea a) <= skylinearea (concat a)
+prop_max a = maximum (0 : map skyfoldl a) <= skyfoldl (concat a)
 
 prop_max1 :: [Rectangle] -> Bool
-prop_max1 a = maximum (0 : map area a) <= skylinearea a
+prop_max1 a = maximum (0 : map area a) <= skyfoldl a
 
 prop_skyx :: [Rectangle] -> Property
-prop_skyx l = skylinearea l === skylinearea (l ++ l)
+prop_skyx l = skyfoldl l === skyfoldl (l ++ l)
 
 prop_order :: [Rectangle] -> [Rectangle] -> Property
-prop_order a b = skylinearea (a++b) === skylinearea (b++a)
+prop_order a b = skyfoldl (a++b) === skyfoldl (b++a)
 
 prop_pos :: [Rectangle] -> Bool
-prop_pos l = skylinearea l >= 0
+prop_pos l = skyfoldl l >= 0
 
-return [] 
-runTests :: IO Bool 
-runTests = $quickCheckAll 
+return []
+runTests :: IO Bool
+runTests = $quickCheckAll
 
-main :: IO Bool 
-main = runTests  
+main :: IO Bool
+main = runTests
