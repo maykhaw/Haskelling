@@ -5,7 +5,8 @@ import Test.QuickCheck
 import Data.List
 import qualified Data.Set as Set 
 import Control.Applicative
-import Control.Monad (join)
+--import Control.Monad (join)
+import Data.Function (on) 
 
 data Rectangle = Rectangle { left :: Int, right :: Int, top :: Int } deriving (Ord, Eq, Show)
 data Coords = Coords { x :: Int, y :: Int } deriving (Ord, Eq, Show)
@@ -29,7 +30,6 @@ instance Arbitrary Coords where
 
 nHeight :: Int -> Rectangle -> Rectangle
 nHeight n (Rectangle a b c) = Rectangle a b (n * c)
-
 
 rectCoord :: Rectangle -> [Coords]
 rectCoord (Rectangle x y z) = [Coords x 0, Coords x z, Coords y 0, Coords y z]
@@ -70,8 +70,7 @@ add (Rectangle m n o) (Rectangle x y z) = let height = max o z in
 traverseadd :: [Rectangle] -> [Rectangle] 
 traverseadd [] = [] 
 traverseadd [a] = [a] 
-traverseadd l = let (x : y : xs) = sort l in 
-               add x y ++ traverseadd (y : xs) 
+traverseadd (x : y : xs) = add x y ++ traverseadd (y : xs) 
 
 --removeLine removes rectangles that don't have any area inside, i.e. lines 
 removeLine :: [Rectangle] -> [Rectangle] 
@@ -105,6 +104,7 @@ prop_foldllap2 :: [Rectangle] -> Property
 prop_foldllap2 l = foldllap (foldllap l) === foldllap l 
 
 hasOverlaps :: [Rectangle] -> Bool 
+hasOverlaps [] = False 
 hasOverlaps l = let overlap :: Rectangle -> Rectangle -> Bool 
                     overlap (Rectangle _ b _) (Rectangle x _ _) = b > x  
                     newlist = neighbours $ sort l in 
@@ -116,7 +116,29 @@ neighbours l = zip l (tail l)
 prop_foldloverlaps :: [Rectangle] -> Bool 
 prop_foldloverlaps l = not.hasOverlaps $ foldllap l  
 
+xheight :: Rectangle -> [(Int,Int)] 
+xheight (Rectangle x y z) = map (,z) [x..y] 
 
+xHeightArea :: [Rectangle] -> Int 
+xHeightArea [] = 0 
+xHeightArea l = let list = groupBy ((==) `on` fst) $ sort $ myNub $ concatMap xheight l in 
+                sum $ snd $ unzip $ map maximum list  
+
+xRect :: [(Int,Int)] -> [Rectangle]                                         
+xRect [] = [] 
+xRect [(x,y)] = []  
+xRect l = let list :: [(Int,Int)] -> [[(Int,Int)]] 
+              list xs = groupBy (\a b -> fst b == (fst a + 1)) (map maximum $ groupBy ((==) `on` fst) $ sort $ myNub xs)
+              newlist :: [[(Int,Int)]] -> [[(Int,Int)]] 
+              newlist bs = concatMap (groupBy ((==) `on` snd)) bs 
+              rect :: [(Int,Int)] -> Maybe Rectangle 
+              rect [] = Nothing
+              rect [a] = Nothing 
+              rect l = Just $ Rectangle (fst $ head l) (fst $ last l) (snd $ head l) in 
+          mapMaybe rect $ newlist $ list $ l  
+          
+prop_xRect :: [Rectangle] -> Bool 
+prop_xRect l = not.hasOverlaps $ xRect $ concatMap xheight l 
 
 area :: Rectangle -> Int
 area (Rectangle x y z) = z * (y - x)
