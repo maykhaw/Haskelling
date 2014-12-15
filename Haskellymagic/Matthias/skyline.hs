@@ -57,12 +57,15 @@ prop_nonlapreverse a b = nonoverlap a b == nonoverlap b a
 prop_nonlaparea :: Rectangle -> Rectangle -> Bool 
 prop_nonlaparea a b = map area (nonoverlap a b) <= map area [a,b] 
 
+--foldllap recurses through the list and returns a list of all rectangles that do not overlap with each other, but entirely covering the space as defined by the original list of rectangles. 
+--
 foldllap :: [Rectangle] -> [Rectangle]
-foldllap l = foldl helper [] (sort (nub l))  
+foldllap l = let recurse b = foldl helper [] $ sort $ nub b 
                 where helper :: [Rectangle] -> Rectangle -> [Rectangle] 
                       helper [] a = [a]  
                       helper [a] b = nonoverlap a b
                       helper l b = concat $ map (nonoverlap b) l 
+             in if hasOverlaps 
 
 prop_foldllapnub :: [Rectangle] -> Property 
 prop_foldllapnub l = foldllap l === nub (foldllap l) 

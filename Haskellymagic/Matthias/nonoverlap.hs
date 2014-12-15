@@ -61,11 +61,42 @@ prop_nonlaparea a b = sum (map area (nonoverlap a b)) <= sum (map area [a,b])
 myNub :: Ord a => [a] -> [a]
 myNub = Set.toList . Set.fromList 
 
+add :: Rectangle -> Rectangle -> [Rectangle] 
+add (Rectangle m n o) (Rectangle x y z) = let height = max o z in
+                                          if n >= x then if o == z then [Rectangle m y z] 
+                                                                   else [Rectangle m x o, Rectangle x n height, Rectangle n y z] 
+                                                    else [Rectangle m n o]
+
+traverseadd :: [Rectangle] -> [Rectangle] 
+traverseadd [] = [] 
+traverseadd [a] = [a] 
+traverseadd l = let (x : y : xs) = sort l in 
+               add x y ++ traverseadd (y : xs) 
+
+--removeLine removes rectangles that don't have any area inside, i.e. lines 
+removeLine :: [Rectangle] -> [Rectangle] 
+removeLine [] = [] 
+removeLine ((Rectangle x y z) : xs) = if x == y || z == 0 then removeLine xs 
+                                                          else (Rectangle x y z) : removeLine xs 
+
+recurseadd :: [Rectangle] -> [Rectangle] 
+recurseadd l = if hasOverlaps l then recurseadd $ traverseadd $ removeLine $ myNub l 
+                                else l           
+
+prop_recurseaddnub :: [Rectangle] -> Property
+prop_recurseaddnub l = recurseadd l === nub (recurseadd l)
+
+prop_recurseadd2 :: [Rectangle] -> Property 
+prop_recurseadd2 l = recurseadd (recurseadd l) === recurseadd l 
+
+--foldllap takes a list of rectangles and returns a list of nonoverlapping rectangles that covers the entire area of the original list. 
 foldllap :: [Rectangle] -> [Rectangle]
-foldllap l = foldl helper [] (sort (myNub l)) 
-                 where helper :: [Rectangle] -> Rectangle -> [Rectangle]
-                       helper [] a = [a]
-                       helper l b = myNub $ concat $ map (nonoverlap b) l 
+foldllap l = let recurse b = foldl helper [] $ sort $ myNub b 
+                    where helper :: [Rectangle] -> Rectangle -> [Rectangle]
+                          helper [] a = [a]
+                          helper list a = myNub $ concat $ map (nonoverlap a) list in 
+             if hasOverlaps (recurse l) then foldllap l  
+                                        else recurse l 
 
 prop_foldllapnub :: [Rectangle] -> Property
 prop_foldllapnub l = foldllap l === nub (foldllap l)
