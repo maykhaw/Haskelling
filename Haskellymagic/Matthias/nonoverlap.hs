@@ -95,8 +95,8 @@ foldllap l = let recurse b = foldl helper [] $ sort $ myNub b
                     where helper :: [Rectangle] -> Rectangle -> [Rectangle]
                           helper [] a = [a]
                           helper list a = myNub $ concat $ map (nonoverlap a) list in 
-             if hasOverlaps (recurse l) then foldllap l  
-                                        else recurse l 
+             if hasOverlaps l then l 
+                              else foldllap $ recurse l 
 
 prop_foldllapnub :: [Rectangle] -> Property
 prop_foldllapnub l = foldllap l === nub (foldllap l)
