@@ -63,32 +63,16 @@ xHeightArea :: [Rectangle] -> Int
 xHeightArea l = sum $ map area $ xRect $ concatMap xheight l 
 
 xRect :: [(Int,Int)] -> [Rectangle]                                         
--- xRect [] = [] 
--- xRect [(x,y)] = []  
-xRect l = removeLines $ mapMaybe rect $ list l 
+xRect [] = [] 
+xRect [(x,y)] = []  
+xRect l = let list :: [(Int,Int)] -> [[(Int,Int)]] 
+              list xs = concatMap (groupBy ((==) `on` snd)) (groupBy (\a b -> fst b == (fst a + 1)) (map maximum $ groupBy ((==) `on` fst) $ sort $ myNub xs))
+              rect :: [(Int,Int)] -> Maybe Rectangle 
+              rect [] = Nothing 
+              rect [(x,y)] = Just $ Rectangle x (x + 1) y
+              rect l = Just $ Rectangle (fst $ head l) (1 + fst (last l)) (snd $ head l) in 
+           removeLines $ mapMaybe rect $ list l 
 
-list :: [(Int,Int)] -> [[(Int,Int)]] 
-list xs = myGroup (\(xa, ya) (xb, yb) -> xa + 1 == xb && ya == yb)
-        -- groupBy (\a b -> fst b == (fst a + 1))
-        $ map maximum
-        $ groupBy ((==) `on` fst)
-        $ sort
-        $ myNub xs
-
--- TODO: do it yourself.
-myGroup :: (a -> a -> Bool) -> [a] -> [[a]]
-myGroup eq = foldr helper [] where
-    helper a [] = [[a]]
-    helper a ((b:bs):bss) | eq a b = (a:b:bs) : bss
-                          | otherwise = [a] : (b:bs) : bss
-
-
--- TODO: Test for xRect to never decrease with more x-values.
-
-rect :: [(Int,Int)] -> Maybe Rectangle 
-rect [] = Nothing 
--- rect [(x,y)] = Just $ Rectangle x (x + 1) y
-rect l = Just $ Rectangle (fst $ head l) (1 + fst (last l)) (snd $ head l) 
 
 removeLines :: [Rectangle] -> [Rectangle] 
 removeLines [] = [] 
@@ -148,6 +132,4 @@ return []
 
 runTests = $quickCheckAll 
 
-main = do
-    print $ concatMap xheight [Rectangle 0 1 1] 
-    print $ rectRect [Rectangle 0 1 1]  
+main = runTests 
