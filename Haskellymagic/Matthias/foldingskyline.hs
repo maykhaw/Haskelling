@@ -66,8 +66,15 @@ helpersky a l = let (overlapping, nonoverlapping) = span (checkoverlap a) l in
 heightlist :: Rectangle -> [Rectangle] -> [(Rectangle, Int)]
 heightlist (Rectangle a b c) l = zip l (map (max c) (map top l))
 
-resolveoverlap :: Rectangle -> [Rectangle] -> [Rectangle] 
-resolveoverlap (Rectangle a b c) ((Rectangle x y z):xs) = 
+resolveoverlap :: Rectangle -> [(Rectangle, Int)] -> [Rectangle] 
+resolveoverlap a [] = [a] 
+resolveoverlap (Rectangle a b c) ((Rectangle x y z) : xs) = if a == x 
+    then case compare b y of GT -> Rectangle a y (max c z) : resolveoverlap (Rectangle y b (max c z)) xs 
+                             EQ -> Rectangle a b (max c z) : xs 
+                             LT -> Rectangle a b (max c z) : Rectangle b y z : xs 
+    else fromMaybe undefined $ lookup (sort [a,b,x,y])
+        [((a,b,x,y), error "not possible")
+        ,((a,x,b,y),  
 
 myNub :: Ord a => [a] -> [a] 
 myNub = Set.toList . Set.fromList 
@@ -87,8 +94,27 @@ prop_arb l = not.hasOverlaps $ arbnonRect l
 
 prop_helper1 :: NonEmptyList Rectangle -> Bool  
 prop_helper1 (NonEmpty l) = let (x : xs) = sort l in 
-                            not.hasOverlaps $ helpersky x (arbnonRect xs) 
+                            not.hasOverlaps $ helpersky x (rectRect xs) 
 
+xRect :: [(Int,Int)] -> [Rectangle]                                       
+xRect [] = [] 
+xRect [(x,y)] = []  
+xRect l = let list :: [(Int,Int)] -> [[(Int,Int)]] 
+              list xs = concatMap (groupBy ((==) `on` snd)) (groupBy (\a b -> fst b == (fst a + 1)) (map maximum $ groupBy ((==) `on` fst) $ sort $ myNub xs))
+              rect :: [(Int,Int)] -> Maybe Rectangle 
+              rect [] = Nothing 
+              rect [(x,y)] = Just $ Rectangle x (x + 1) y
+              rect l = Just $ Rectangle (fst $ head l) (1 + fst (last l)) (snd $ head l) in 
+           removeLines $ mapMaybe rect $ list l 
+
+
+removeLines :: [Rectangle] -> [Rectangle] 
+removeLines [] = [] 
+removeLines ((Rectangle x y z) : xs) = if z == 0 || x == y then removeLines xs 
+                                                           else (Rectangle x y z) : removeLines xs 
+--rectRect returns a list of non overlapping rectangles  
+rectRect :: [Rectangle] -> [Rectangle] 
+rectRect l = xRect $ concatMap xheight l
 return [] 
 runTests :: IO Bool 
 runTests = $quickCheckAll 
