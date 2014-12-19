@@ -45,6 +45,13 @@ nonoverlap (Rectangle a b c) (Rectangle x y z) = let maxim = max c z in
         ,([a,x,y,b], if maxim == c then [Rectangle a b c]
                                    else [Rectangle a x c, Rectangle x y z, Rectangle y b c])]
                                          
+--checkoverlap compares two rectangles to see if there are any overlap 
+--the first rectangle is assumed to be strictly to the left of the second 
+--a <= x 
+checkoverlap :: Rectangle -> Rectangle -> Bool 
+checkoverlap (Rectangle a b c) (Rectangle x y z) = if a == x then True 
+                                                             else if b > x then True 
+                                                                           else False 
                                                                          
 --helpersky takes a rectangle and a list of rectangles, and returns a new list of non overlapping rectangles 
 --the list of rectangles strictly contains NO overlap 
@@ -52,4 +59,40 @@ nonoverlap (Rectangle a b c) (Rectangle x y z) = let maxim = max c z in
 --the new rectangle is strictly to the left of the list: x <= left a 
 helpersky :: Rectangle -> [Rectangle] -> [Rectangle] 
 helpersky a [] = [a] 
-helpersky (Rectangle x y z) (a : bs) = if x < right a then undefined else undefined  
+helpersky a l = let (overlapping, nonoverlapping) = span (checkoverlap a) l in 
+                if null overlapping then a : l 
+                                    else (Rectangle (right a) (right $ head overlapping) (top a)) : concatMap (resolveoverlap a) (heightlist a overlapping) ++ nonoverlapping 
+
+heightlist :: Rectangle -> [Rectangle] -> [(Rectangle, Int)]
+heightlist (Rectangle a b c) l = zip l (map (max c) (map top l))
+
+resolveoverlap :: Rectangle -> [Rectangle] -> [Rectangle] 
+resolveoverlap (Rectangle a b c) ((Rectangle x y z):xs) = 
+
+myNub :: Ord a => [a] -> [a] 
+myNub = Set.toList . Set.fromList 
+
+arbnonRect :: [Rectangle] -> [Rectangle] 
+arbnonRect [] = [] 
+arbnonRect [a] = [a] 
+arbnonRect l = let leftrights = helper $ sort (map left l ++ map right l) 
+                        where helper [] = [] 
+                              helper (x : y : xs) = (x, y) : helper xs 
+                   tops = map top l
+                   toRect (a,b) c = Rectangle a b c in 
+               zipWith toRect leftrights tops
+
+prop_arb :: [Rectangle] -> Bool 
+prop_arb l = not.hasOverlaps $ arbnonRect l 
+
+prop_helper1 :: NonEmptyList Rectangle -> Bool  
+prop_helper1 (NonEmpty l) = let (x : xs) = sort l in 
+                            not.hasOverlaps $ helpersky x (arbnonRect xs) 
+
+return [] 
+runTests :: IO Bool 
+runTests = $quickCheckAll 
+
+main :: IO Bool 
+main = runTests 
+
