@@ -1,4 +1,4 @@
--- {-# LANGUAGE TemplateHaskell #-} 
+ {-# LANGUAGE TemplateHaskell #-} 
 import Test.QuickCheck 
 import Data.List 
 
@@ -33,10 +33,10 @@ prop_cashflow x l = cashflow x l == recursiveflow x l
 negcashflow :: Int -> [Int] -> [(Int,Int)] 
 negcashflow x l = filter (\(x,y) -> y < 0) $ zip [0..] $ cashflow x l 
 
--- return [] 
+return [] 
 
 runTests :: IO Bool 
-runTests = return True -- $quickCheckAll 
+runTests = $quickCheckAll 
 
 main :: IO Bool 
 main = runTests 
