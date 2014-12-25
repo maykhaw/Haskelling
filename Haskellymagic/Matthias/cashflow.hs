@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-} 
+-- {-# LANGUAGE TemplateHaskell #-} 
 import Test.QuickCheck 
 import Data.List 
 
@@ -21,14 +21,22 @@ prop_recinit :: Int -> [Int] -> Bool
 prop_recinit x l = recursiveflow x l == initflow x l 
 
 cashflow :: Int -> [Int] -> [Int] 
-cashflow x l = scanl helper [] (x : l) 
-    where helper [] a = [a] 
-          helper [b] a = (a + b) : b 
+cashflow x l = reverse $ foldl helper [] (x : l) 
+    where helper :: [Int] -> Int -> [Int] 
+          helper [] a = [a] 
+          helper [b] a = (a + b) : [b] 
           helper (b : bs) a = (a + b) : b : bs 
 
-return [] 
+prop_cashflow :: Int -> [Int] -> Bool 
+prop_cashflow x l = cashflow x l == recursiveflow x l 
+
+negcashflow :: Int -> [Int] -> [(Int,Int)] 
+negcashflow x l = filter (\(x,y) -> y < 0) $ zip [0..] $ cashflow x l 
+
+-- return [] 
+
 runTests :: IO Bool 
-runTests = $quickCheckAll 
+runTests = return True -- $quickCheckAll 
 
 main :: IO Bool 
 main = runTests 
