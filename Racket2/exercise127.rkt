@@ -3,5 +3,4 @@
   (cond 
     [(empty? list) #t]
     [(cons? list)
-     (and (first list)
-          (all-true (rest list)))]))
+     (if (first list) (all-true (rest list)) #f)]))
