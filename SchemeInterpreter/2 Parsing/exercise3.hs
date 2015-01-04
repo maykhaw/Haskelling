@@ -21,7 +21,7 @@ pString = do
 parseString :: Parser LispVal 
 parseString = do 
     char '"' 
-    x <- many (noneOf "\"" <|> liftM (const '"') (string "\\\""))
+    x <- many (noneOf "\"" <|> liftM (const '"') (string "\\\"") <|> liftM (const '\n') (string "\\n") <|> liftM (const '\t') (string "\\t") )
     char '"' 
     return $ String x 
 
