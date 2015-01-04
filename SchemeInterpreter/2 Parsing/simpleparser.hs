@@ -18,8 +18,8 @@ parseString = do
     return $ String x 
 
 parseAtom :: Parser LispVal 
-parseAtom = do 
-    first <- letter <|> symbol 
+parseAtom = do
+    first <- letter <|> symbol -- <|> denotes choice: it means that try the letter parser, and if that fails, try the symbol parser    
     rest <- many (letter <|> digit <|> symbol)
     let atom = [first] ++ rest 
     return $ case atom of 
