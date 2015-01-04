@@ -1,5 +1,5 @@
 -- modifying parseNumber using do Notation and >>= 
-moduleMain where 
+module Main where 
 import Control.Monad 
 import System.Environment 
 import Text.ParserCombinators.Parsec hiding (spaces) 
@@ -18,9 +18,10 @@ doparseNumber :: Parser LispVal
 doparseNumber = do 
     x <- many1 digit 
     let y = (Number . read) x 
-    return $ show y 
+    return $ y 
 
 exparseNumber :: Parser LispVal 
-exparseNumber = do
-     x <- many1 digit 
-     x >>= Number . read 
+exparseNumber = 
+    many1 digit >>= \x ->  
+    let y = (Number . read) x in 
+    return $ y
