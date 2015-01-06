@@ -14,6 +14,10 @@ data LispVal = Atom String
 parseNumber :: Parser LispVal 
 parseNumber = liftM (Number . read) $ many1 digit 
 
+parseOctHex :: Parser LispVal 
+parseOctHex = do 
+    x <- many1 digit 
+
 doparseNumber :: Parser LispVal 
 doparseNumber = do 
     x <- many1 digit 
