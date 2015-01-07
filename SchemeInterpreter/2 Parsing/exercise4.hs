@@ -3,7 +3,7 @@ module Main where
 import Control.Monad 
 import System.Environment 
 import Text.ParserCombinators.Parsec hiding (spaces) 
-
+import Numeric 
 data LispVal = Atom String 
              | List [LispVal] 
              | DottedList [LispVal] LispVal 
@@ -16,7 +16,9 @@ parseNumber = liftM (Number . read) $ many1 digit
 
 parseOctHex :: Parser LispVal 
 parseOctHex = do 
-    x <- many1 digit 
+    x <- many1 digit <|> many1 readHex <|> many1 readOct
+    let y = (Number. read) x 
+    return $ y 
 
 doparseNumber :: Parser LispVal 
 doparseNumber = do 
