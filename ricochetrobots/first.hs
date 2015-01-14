@@ -1,3 +1,4 @@
+import Data.Maybe
 import Test.QuickCheck 
 import Data.List 
 
@@ -76,7 +77,7 @@ right walls (Position x y) = let shortlist = sort $ filter (\(Wall orient a b) -
 
 -- oneStep produces a list of possible new Positions, based on up, down, left and right 
 oneStep :: [Wall] -> Position -> [Position] 
-oneStep walls position = nub $ fmap (\fn -> fn walls position) [up, down, left, right]
+oneStep walls position = fmap (\fn -> fn walls position) [up, down, left, right]
 
 -- test for making sure that oneStep only produces up to 4 new positions
 prop_oneStep4 :: [Wall] -> Position -> Bool 
@@ -84,10 +85,15 @@ prop_oneStep4 walls position = 4 >= length (oneStep walls position)
 
 tupleStep :: [Wall] -> [Position] -> [(Position,[Position])]
 tupleStep walls [] = [] 
-tupleStep walls [start] = map (\x -> (x,[x,start])) $ oneStep walls start  
-tupleStep walls list = map (\x -> (x, [x,list])) $ map oneStep $ map head walls 
-
+tupleStep walls list = let nextsteps :: [Position] 
+                           nextsteps = concatMap (oneStep walls) list  
+                           replist = map (replicate 4) list  
+                           newlist = zipWith (:) nextsteps replist in 
+                       map (\l -> (head l, l)) newlist 
 
 -- target is a brute force generation of the shortest path, in terms of the number of steps, between 2 positions 
--- target :: [Wall] -> Position -> Position -> Int 
-                                            
+target :: [Wall] -> Position -> [(Position,[Position])] -> Int 
+target walls end (start,[]) | start == end = 0 
+                            | otherwise = let nextstep = tupleStep walls [start] in
+                                     fromMaybe (concatMap (target walls end) nextstep) (lookup end nextstep) 
+                                                                                 
