@@ -1,3 +1,4 @@
+import Test.QuickCheck 
 import Data.List 
 
 data Colour = Red 
@@ -42,40 +43,51 @@ robowalls [] = []
 robowalls l = nub $ concatMap helper l 
     where helper (RP (Position x y) c) = [Wall V x y, Wall H x y, Wall V (x + 1) y, Wall H x (y + 1)]  
 
--- up takes a current RobotPosition and increases the y value until it hits a wall 
-up :: [Wall] -> RP -> RP 
-up walls (RP (Position x y) c) = let shortlist = sort $ filter (\(Wall orient a b) -> isH orient && a == x && b > y) walls in 
+-- up takes a current Position and increases the y value until it hits a wall 
+up :: [Wall] -> Position -> Position 
+up walls (Position x y) = let shortlist = sort $ filter (\(Wall orient a b) -> isH orient && a == x && b > y) walls in 
                                  case shortlist of 
-                                    [] -> RP (Position x 16) c
-                                    (Wall orient a b):_ -> RP (Position x (b - 1)) c 
+                                    [] -> Position x 16
+                                    (Wall orient a b):_ -> Position x (b - 1) 
 
 
--- down takes a current RobotPosition and decreases the y value until it hits a wall 
-down :: [Wall] -> RP -> RP 
-down walls (RP (Position x y) c) = let shortlist = sort $ filter (\(Wall orient a b) -> isH orient && a == x && b < y) walls in 
+-- down takes a current Position and decreases the y value until it hits a wall 
+down :: [Wall] -> Position -> Position 
+down walls (Position x y) = let shortlist = sort $ filter (\(Wall orient a b) -> isH orient && a == x && b < y) walls in 
                                    case shortlist of 
-                                       [] -> RP (Position x 0) c
-                                       (Wall orient a b):_ -> RP (Position x b) c  
+                                       [] -> Position x 0
+                                       (Wall orient a b):_ -> (Position x b)  
 
 
--- left takes a current RobotPosition and decreases the x value until it hits a wall 
-left :: [Wall] -> RP -> RP 
-left walls (RP (Position x y) c) = let shortlist = sort $ filter (\(Wall orient a b) -> isV orient && a < x && b == y) walls in 
+-- left takes a current Position and decreases the x value until it hits a wall 
+left :: [Wall] -> Position -> Position 
+left walls (Position x y) = let shortlist = sort $ filter (\(Wall orient a b) -> isV orient && a < x && b == y) walls in 
                                    case shortlist of 
-                                       [] -> RP (Position 0 y) c
-                                       (Wall orient a b):_ -> RP (Position a y) c 
+                                       [] -> Position 0 y
+                                       (Wall orient a b):_ -> Position a y 
 
 
--- right takes a current RobotPosition and increases the x value until it hits a wall 
-right :: [Wall] -> RP -> RP 
-right walls (RP (Position x y) c) = let shortlist = sort $ filter (\(Wall orient a b) -> isV orient && a == x && b < y) walls in 
+-- right takes a current Position and increases the x value until it hits a wall 
+right :: [Wall] -> Position -> Position 
+right walls (Position x y) = let shortlist = sort $ filter (\(Wall orient a b) -> isV orient && a == x && b < y) walls in 
                                     case shortlist of 
-                                       [] -> RP (Position 0 y) c
-                                       (Wall orient a b):_ -> RP (Position (a - 1) y) c  
--- oneStep produces a list of possible new RPs, based on up, down, left and right 
-oneStep :: [Wall] -> RP -> [RP]  
-oneStep walls (RP (Position x y) c) =  
+                                       [] -> Position 0 y
+                                       (Wall orient a b):_ -> Position (a - 1) y 
 
-prop_oneStep4 :: Position -> Bool 
-prop_oneStep4 (Position x y) = 4 >= length (oneStep (Position x y)) 
+-- oneStep produces a list of possible new Positions, based on up, down, left and right 
+oneStep :: [Wall] -> Position -> [Position] 
+oneStep walls position = nub $ fmap (\fn -> fn walls position) [up, down, left, right]
 
+-- test for making sure that oneStep only produces up to 4 new positions
+prop_oneStep4 :: [Wall] -> Position -> Bool 
+prop_oneStep4 walls position = 4 >= length (oneStep walls position) 
+
+tupleStep :: [Wall] -> [Position] -> [(Position,[Position])]
+tupleStep walls [] = [] 
+tupleStep walls [start] = map (\x -> (x,[x,start])) $ oneStep walls start  
+tupleStep walls list = map (\x -> (x, [x,list])) $ map oneStep $ map head walls 
+
+
+-- target is a brute force generation of the shortest path, in terms of the number of steps, between 2 positions 
+-- target :: [Wall] -> Position -> Position -> Int 
+                                            
