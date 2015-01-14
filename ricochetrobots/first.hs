@@ -92,8 +92,8 @@ tupleStep walls list = let nextsteps :: [Position]
                        map (\l -> (head l, l)) newlist 
 
 -- target is a brute force generation of the shortest path, in terms of the number of steps, between 2 positions 
-target :: [Wall] -> Position -> [(Position,[Position])] -> Int 
-target walls end (start,[]) | start == end = 0 
+target :: [Wall] -> Position -> (Position,[Position]) -> [Position] 
+target walls end (start,[]) | start == end = [] 
                             | otherwise = let nextstep = tupleStep walls [start] in
-                                     fromMaybe (concatMap (target walls end) nextstep) (lookup end nextstep) 
+                                     reverse $ fromMaybe (concatMap (target walls end) nextstep) (lookup end nextstep) 
                                                                                  
