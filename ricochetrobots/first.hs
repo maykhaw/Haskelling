@@ -1,6 +1,8 @@
+import Data.Ord 
 import Data.Maybe
 import Test.QuickCheck 
 import Data.List 
+import qualified Data.Set as Set
 
 data Colour = Red 
             | Black 
@@ -8,7 +10,6 @@ data Colour = Red
             | Green 
             | Yellow
             deriving (Eq, Ord, Show) 
-
 
 --RP : formerly Robot Position 
 data RP = RP Position Colour
@@ -35,13 +36,15 @@ data Wall = Wall Orient Int Int
 data Position = Position Int Int 
                 deriving (Eq, Ord, Show) 
 
+data Path = Path [Position] 
+            deriving (Eq, Ord, Show) 
+
 -- wallList is the fixed list of walls 
 
 
 --robowalls takes a list of current RobotPositions and turns it into a list of walls, to enable generation of steps. 
 robowalls :: [RP] -> [Wall]
-robowalls [] = [] 
-robowalls l = nub $ concatMap helper l 
+robowalls l = nub . concatMap helper $ l 
     where helper (RP (Position x y) c) = [Wall V x y, Wall H x y, Wall V (x + 1) y, Wall H x (y + 1)]  
 
 -- up takes a current Position and increases the y value until it hits a wall 
@@ -77,23 +80,19 @@ right walls (Position x y) = let shortlist = sort $ filter (\(Wall orient a b) -
 
 -- oneStep produces a list of possible new Positions, based on up, down, left and right 
 oneStep :: [Wall] -> Position -> [Position] 
-oneStep walls position = fmap (\fn -> fn walls position) [up, down, left, right]
+oneStep walls position = filter (\(Position x y) -> x > 0 && x <= 16 && y > 0 && y <= 16) $ fmap (\fn -> fn walls position) [up, down, left, right]
 
 -- test for making sure that oneStep only produces up to 4 new positions
 prop_oneStep4 :: [Wall] -> Position -> Bool 
 prop_oneStep4 walls position = 4 >= length (oneStep walls position) 
 
-tupleStep :: [Wall] -> [Position] -> [(Position,[Position])]
-tupleStep walls [] = [] 
-tupleStep walls list = let nextsteps :: [Position] 
-                           nextsteps = concatMap (oneStep walls) list  
-                           replist = map (replicate 4) list  
-                           newlist = zipWith (:) nextsteps replist in 
-                       map (\l -> (head l, l)) newlist 
-
--- target is a brute force generation of the shortest path, in terms of the number of steps, between 2 positions 
-target :: [Wall] -> Position -> (Position,[Position]) -> [Position] 
-target walls end (start,[]) | start == end = [] 
-                            | otherwise = let nextstep = tupleStep walls [start] in
-                                     reverse $ fromMaybe (concatMap (target walls end) nextstep) (lookup end nextstep) 
-                                                                                 
+-- target takes a list of walls, an end position, a start position and returns a path. 
+target :: [Wall] -> Position -> Position -> Maybe [Position] 
+target walls end start
+    | start == end = Just $ [] 
+    | otherwise = let nextsteps = oneStep walls start 
+                      paths = mapMaybe (target walls end) nextsteps
+                      steppaths = map (start :) paths
+                  in case steppaths of 
+                     [] -> Nothing
+                     l -> Just $ minimumBy (comparing length) l 
