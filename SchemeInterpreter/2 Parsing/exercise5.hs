@@ -18,14 +18,14 @@ parseChar = liftM Char $ parseLower <|> parseUpper
 
 
 parseLower :: Parser Char 
-parseLower = do
-    optional (string "#\\a") 
+parseLower = do 
+    try $ (string "#\\a") 
     x <- many1 lower 
     return $ read x 
 
 parseUpper :: Parser Char 
 parseUpper = do
-    optional (string "#\\A")
+    try $ (string "#\\A")
     x <- many1 upper 
     return $ read x 
 
