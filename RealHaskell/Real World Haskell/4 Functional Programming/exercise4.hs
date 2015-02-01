@@ -1,12 +1,13 @@
 import Test.QuickCheck 
+import Test.QuickCheck.Function 
 
 takeWrec :: (a -> Bool) -> [a] -> [a] 
 takeWrec _ [] = [] 
 takeWrec p (x : xs) = if p x then x : takeWrec p xs 
                              else [] 
 
-prop_Wrec :: (Int -> Bool) -> [Int] -> Property 
-prop_Wrec p l = takeWrec p l === takeWhile p l 
+prop_Wrec :: Fun Int Bool -> [Int] -> Property 
+prop_Wrec p l = takeWrec (apply p) l === takeWhile (apply p) l 
 
 
 takeWf :: (a -> Bool) -> [a] -> [a] 
@@ -16,8 +17,8 @@ takeWf p l = foldr helper [] l
           helper a list = if p a then a : list 
                                  else []
 
-prop_Wf :: (Int -> Bool) -> [Int] -> Property 
-prop_Wf p l = takeWf p l === takeWhile p l 
+prop_Wf :: Fun Int Bool -> [Int] -> Property 
+prop_Wf p l = takeWf (apply p) l === takeWhile (apply p) l 
 
 main :: IO ()  
 main = do
