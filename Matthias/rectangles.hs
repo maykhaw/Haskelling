@@ -1,11 +1,28 @@
 {-# LANGUAGE TemplateHaskell #-} 
 
+import Data.Maybe 
+import Control.Applicative 
 import Data.Ord 
 import Test.QuickCheck 
 import Data.List 
 
 data Rectangle = Rectangle Int Int Int -- height x y 
                  deriving (Ord, Eq, Show) 
+instance Arbitrary Rectangle where 
+    arbitrary = do 
+        NonNegative h <- arbitrary 
+        NonNegative left <- arbitrary 
+        NonNegative width <- arbitrary 
+        return $ Rectangle h left (left + width) 
+    shrink rect@(Rectangle h l r) = filter (/= rect) $ mapMaybe nf $ Rectangle <$> l : shrink l <*> r : shrink r <*> h : shrink h 
+
+
+nf rect@(Rectangle h l r) | l <= r = Just rect 
+                          | otherwise = Nothing 
+
+recHeight :: Rectangle -> Int 
+recHeight (Rectangle height y z) = height 
+
 data Point = Point (Int, Int)
              deriving (Ord, Eq, Show) 
 data Line = Line Int Int -- x height   
@@ -51,7 +68,8 @@ prop_zero l = bruterec (map rectify l) >= 0
 
 bruteline :: [Rectangle] -> Int  
 bruteline l = let lines = maxLines $ concatMap recLines l in
-              sum $ init $ map lineH lines 
+              if null lines then 0
+                            else sum $ map lineH lines 
              
 prop_zerol :: [Rectangle] -> Bool 
 prop_zerol l = bruteline (map rectify l) >= 0 
@@ -64,14 +82,48 @@ rectify (Rectangle height left right) = if right >= left then Rectangle (abs hei
 prop_bruterecline :: [Rectangle] -> Property 
 prop_bruterecline l = bruterec l === bruteline l
 
--- mergeRec takes two Rectangles and joins them. we assume that the first Rectangle is to the right of the second rectangle (foldr reasons) 
-mergeRec :: Rectangle -> Rectangle -> [Rectangle] 
-mergeRec (Rectangle height left right) (Rectangle tall x y) =
+-- twoRec takes two rectangles 
+twoRec :: Rectangle -> Rectangle -> (Maybe (Either Rectangle Rectangle), Maybe Rectangle, Maybe (Either Rectangle Rectangle))
+twoRec (Rectangle height x y) (Rectangle tall l r) = 
     let maxi = max height tall in 
-    case (compare a x, compare a y, height == tall) of 
-        (GT, GT, True) -> [Rectangle height left right, Rectangle tall x y] 
-        (GT, GT, False) -> [Rectangle height left right, Rectangle tall x y] 
-        (GT, LT, True) -> [Rectangle tall x right] 
-        (GT, LT, False) -> [Rectangle 
-        (GT, EQ, True) -> [Rectangle tall x right] 
-        
+    fromMaybe undefined $ lookup (sort [x,y,l,r])
+        [([x,y,l,r], (Just $ Left (Rectangle height x y), Nothing, Just $ Right (Rectangle tall l r)))
+        ,([x,l,y,r], if l == y then (Just $ Left (Rectangle height x y), Nothing, Just $ Right (Rectangle tall l r))
+                               else (Just $ Left (Rectangle height x l), Just (Rectangle maxi l y), Just $ Right (Rectangle tall y r)))
+        ,([x,l,r,y], if maxi == height then (Just $ Left (Rectangle height x l), Just (Rectangle height l r), Just $ Left (Rectangle height r y)) 
+                                       else (Just $ Left (Rectangle height x l), Just (Rectangle tall l r), Just $ Left (Rectangle height r y)))
+        ,([l,r,x,y], (Just $ Right (Rectangle tall l r), Nothing, Just $ Left (Rectangle height x y)))
+        ,([l,x,r,y], if x == r then (Just $ Right (Rectangle tall l r), Nothing, Just $ Left (Rectangle height x y))
+                               else (Just $ Right (Rectangle tall l x), Just (Rectangle maxi x r), Just $ Left (Rectangle height r y)))
+        ,([l,x,y,r], if maxi == tall then (Just $ Right (Rectangle tall l x), Just (Rectangle tall x y), Just $ Right (Rectangle tall y r)) 
+                                     else (Just $ Right (Rectangle tall l x), Just (Rectangle height x y), Just $ Right (Rectangle tall y r)))
+        ]
+
+prop_twoRec :: Rectangle -> Rectangle -> Property  
+prop_twoRec a b@(Rectangle height x y) =
+    let newb = (Rectangle (recHeight a) x y) 
+        (left, middle, right) = twoRec a newb in 
+    (recArea a + recArea newb) === (sumTriple (left, middle, right) + maybe 0 recArea middle) 
+
+prop_abba :: Rectangle -> Rectangle -> Property 
+prop_abba a b = let (x, y, z) = twoRec a b 
+                    (xx, yy, zz) = twoRec b a in 
+                sumTriple (x, y, z) === sumTriple (xx, yy, zz) 
+
+sumTriple :: (Maybe (Either Rectangle Rectangle), Maybe Rectangle, Maybe (Either Rectangle Rectangle)) -> Int 
+sumTriple (a, b, c) = let (x, y, z) = (meitherRec a, maybe 0 recArea b, meitherRec c) in 
+                      x + y + z  
+
+meitherRec :: Maybe (Either Rectangle Rectangle) -> Int 
+meitherRec a = if isNothing a then 0 
+                              else either recArea recArea (fromJust a) 
+
+
+-- mergeRec takes two lists of sorted Rectangles and joins them. We assume that each list of rectangles is non-overlapping within.  
+mergeRec :: [Rectangle] -> [Rectangle] -> [Rectangle] 
+mergeRec [] l = l 
+mergeRec l [] = l 
+mergeRec (x : xs) (y : ys) = 
+    case twoRec x y of 
+         
+    
