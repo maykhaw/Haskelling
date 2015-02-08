@@ -125,5 +125,12 @@ mergeRec [] l = l
 mergeRec l [] = l 
 mergeRec (x : xs) (y : ys) = 
     case twoRec x y of 
-         
-    
+      (Just Left a, Nothing, Just Right b) -> a : b : mergeRec xs ys 
+      (Just Right a, Nothing, Just Left b) -> a : b : mergeRec xs ys 
+      (Just Left a, Just middle, Just Right b) -> a : middle : mergeRec xs (b : ys) 
+      (Just Right a, Just middle, Just Left b) -> a : middle : mergeRec (b : xs) ys 
+
+-- mergeTrav uses mergeRec as a helper function to traverse the list of rectangles. It produces a list of non-overlapping rectangles 
+mergeTrav :: [Rectangle] -> [Rectangle] 
+mergeTrav l = let newl = map (\x -> [x]) l 
+
