@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-} 
+{-# LANGUAGE ViewPatterns #-} 
 
 import Data.Maybe 
 import Control.Applicative 
@@ -82,6 +83,27 @@ rectify (Rectangle height left right) = if right >= left then Rectangle (abs hei
 prop_bruterecline :: [Rectangle] -> Property 
 prop_bruterecline l = bruterec l === bruteline l
 
+swapEither :: Either a b -> Either b a
+swapEither (Left a) = Right a
+swapEither (Right b) = Left b
+
+prop_symmetry :: Rectangle -> Rectangle -> Property
+prop_symmetry r1 r2 = let (x,y,z) = twoRec r1 r2
+                          (x', y', z') = twoRec r2 r1 in
+    conjoin [ x === fmap swapEither  x'
+            , y === y'
+            , z === fmap swapEither z']
+
+mirror :: Rectangle -> Rectangle
+mirror (Rectangle h l r) = Rectangle h (negate r) (negate l)
+
+prop_symmetry2 r1 r2 =
+    let (x,y,z) = twoRec r1 r2
+        (z',y',x') = twoRec (mirror r1) (mirror r2)
+    in conjoin [ x === (fmap.fmap) mirror x'
+               , y === fmap mirror y'
+               , z === (fmap.fmap) mirror z']
+
 -- twoRec takes two rectangles 
 twoRec :: Rectangle -> Rectangle -> (Maybe (Either Rectangle Rectangle), Maybe Rectangle, Maybe (Either Rectangle Rectangle))
 twoRec (Rectangle height x y) (Rectangle tall l r) = 
@@ -115,8 +137,8 @@ sumTriple (a, b, c) = let (x, y, z) = (meitherRec a, maybe 0 recArea b, meitherR
                       x + y + z  
 
 meitherRec :: Maybe (Either Rectangle Rectangle) -> Int 
-meitherRec a = if isNothing a then 0 
-                              else either recArea recArea (fromJust a) 
+meitherRec Nothing = 0 
+meitherRec (Just a) = either recArea recArea a 
 
 
 -- mergeRec takes two lists of sorted Rectangles and joins them. We assume that each list of rectangles is non-overlapping within.  
@@ -124,13 +146,23 @@ mergeRec :: [Rectangle] -> [Rectangle] -> [Rectangle]
 mergeRec [] l = l 
 mergeRec l [] = l 
 mergeRec (x : xs) (y : ys) = 
-    case twoRec x y of 
-      (Just Left a, Nothing, Just Right b) -> a : b : mergeRec xs ys 
-      (Just Right a, Nothing, Just Left b) -> a : b : mergeRec xs ys 
-      (Just Left a, Just middle, Just Right b) -> a : middle : mergeRec xs (b : ys) 
-      (Just Right a, Just middle, Just Left b) -> a : middle : mergeRec (b : xs) ys 
-
+    let recs = twoRec x y in
+    helper recs ++ case twoRec x y of 
+      (_, _, Just (Right b)) -> mergeRec xs (b : ys)
+      (_, _, Just (Left b)) -> mergeRec (b : xs) ys 
+      (_, _, Nothing) -> mergeRec xs ys 
+    where extract = either id id 
+          helper (a,b,_) = catMaybes [fmap extract a, b]
 -- mergeTrav uses mergeRec as a helper function to traverse the list of rectangles. It produces a list of non-overlapping rectangles 
 mergeTrav :: [Rectangle] -> [Rectangle] 
-mergeTrav l = let newl = map (\x -> [x]) l 
+mergeTrav l = go [[x] | x <- l] 
+    where go xs@(_:_:_) = go (pairs xs) 
+          go [xs] = xs
+          go [] = []  
+          pairs :: [[Rectangle]] -> [[Rectangle]]
+          pairs [] = [] 
+          pairs [a] = [a] 
+          pairs (a : b : bs) = mergeRec a b : pairs bs  
 
+prop_merge :: [Rectangle] -> Property 
+prop_merge l = sum (map recArea (mergeTrav l)) === bruterec l 
