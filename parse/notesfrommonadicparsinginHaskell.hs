@@ -1,0 +1,133 @@
+-- notes from Monadic Parsing in Haskell by Hutton, Meijer 
+
+newtype Parser a = Parser (String -> [(a,String)]) 
+
+-- item consumes single characters unconditionally 
+item :: Parser Char 
+item = Parser (\cs -> 
+    case cs of 
+        "" -> [] 
+        (c : cs) -> [(c,cs)]) 
+
+class Monad m where 
+    return :: a -> m a 
+    (>>=) :: m a -> (a -> m b) -> m b 
+
+instance Monad Parser where 
+    return a = Parser (\cs -> [(a,cs)])
+    p >>= f = Parser (\cs -> concat 
+        [parse (f a) cs' | (a, cs') <- parse p cs]) 
+
+-- return a >>= f ==f a (does return or >>= bind strongest?) 
+-- p >>= return == p 
+-- p >>= (\a \> (g a >>= g)) == (p >>= (\a -> f a)) >>= g 
+
+p :: Parser (Char,Char)
+p = do
+    c <- item 
+    item -- what's this item for? 
+    d <- item 
+    return (c,d) 
+
+class Monad m => MonadZero m where -- what does => mean? 
+    zero :: m a 
+class MonadZero m => MonadPlus m where 
+    (++) :: m a -> m a -> m a 
+
+-- zero ++ p == p 
+-- p ++ zero == p 
+-- p ++ (q ++ r) == (p ++ q) ++ r 
+
+-- zero >>= ff == zero
+-- p >>= const zero == zero
+-- (p ++ q) >>= f == (p >>= f) ++ (q >>= f) 
+-- p >>= (\a -> f a ++ g a) == (p >>= f) ++ (p >>= g) 
+
+(+++) :: Parser a -> Parser a -> Parser a 
+p +++ q = Parser (\cs -> 
+    case parse (p ++ q) cs of 
+        [] -> [] 
+        (x : xs) -> [x]) -- so it looks only at the first element, right? 
+
+-- sat is a combinator that takes a predicate and yields a parser that consumes a single character if it satisfies the predicate, and fails otherwise 
+sat :: (Char -> Bool) -> Parser Char 
+sat p = do 
+    c <- item 
+    if p c then return c else zero 
+
+-- char is a specific character parser 
+char :: Char -> Parser Char 
+char c = sat (c ==) 
+-- the bright side is: I think I understand this bit 
+
+-- parsing a specific string 
+string :: String -> Parser STring 
+string "" = return "" 
+string (c : cs) = do
+    char c 
+    string cs 
+    return (c : cs) -- does this really do anything? 
+
+-- parsing repeated applications of a parser p. 
+-- allows zero or more applications of parser p 
+many :: Parser a -> Parser [a] 
+many p = many1 p +++ return [] 
+
+-- allows 1 or more applications of parser p 
+many1 :: Parser a -> Parser [a] 
+many1 p = do 
+    a <- p 
+    as <- many p 
+    return (a : as) 
+
+-- parsing repeated applications of parser p, separated by appliactions of a parser sep whose resulting values are thrown away 
+sepBy :: Parser a -> Parser b -> Parser [a] 
+p `sepBy` sep = p `sepBy1` sep) +++ return [] 
+
+sepBy1 :: Parser a -> Parser b -> Parser [a] 
+p `sepBy1` sep = do 
+    a <- p 
+    as <- many (do sep
+                   p)
+    return (a : as)
+
+-- parsing repeated applications of a parser p, separated by applications of a parser op whose result value is an operator that is assumed to associate to the left, and which is used to combine he results from the p parsers 
+
+chainl :: Parser a -> Parser (a -> a -> a) -> a -> Parser a 
+chainl p op a = (p `chainl1` op) +++ return a 
+
+chainl1 :: Parser a -> Parser (a -> a -> a) -> Parser a 
+p `chainl1` op = do
+    a<- p
+    rest a 
+    where rest a = (do 
+        f <- op
+        b <- p
+        rest (f a b))
+        +++ return a 
+
+space :: Parser String 
+space = many (sat isSpace) 
+
+-- is there a difference between parsers that produce something and the ones that do not? space above only checks for spaces, does it produce a new value? 
+
+-- token parses a token, throwing away any trailing space
+-- what's a token? 
+token :: Parser a -> Parser a
+token p = do 
+    a <- p 
+    space 
+    return a 
+
+-- symb parses a symbolic token
+-- what's a symbolic token? 
+symb :: String -> Parser String 
+symb cs = token (string cs) 
+
+-- apply applies p and throws away any leading space 
+apply :: Parser a -> String -> [(a,String)]
+apply p = parse 
+    (do 
+        space 
+        p)
+
