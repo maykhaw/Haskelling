@@ -1,8 +1,6 @@
 -- notes from Monadic Parsing in Haskell by Hutton, Meijer 
 
-import Prelude hiding (Monad) 
-
-newtype Parser a = Parser { unparser :: (String -> [(a,String)]) } 
+newtype Parser a = Parser (String -> [(a,String)]) 
 
 -- item consumes single characters unconditionally 
 item :: Parser Char 
@@ -12,27 +10,23 @@ item = Parser (\cs ->
         (c : cs) -> [(c,cs)]) 
 
 -- itemlist can generate a list of tuples consisting of the nth element and the rest of the elements after n 
-itemlist :: Parser Char
+itemlist :: Parser (Char, [Char])
 itemlist = Parser $ \cs -> 
     case cs of 
         "" -> [] 
-        (c : cs) -> (c, cs) : unparser itemlist cs
+        (c : cs) -> (c, cs) : itemlist cs 
 
 class Monad m where 
     return :: a -> m a 
     (>>=) :: m a -> (a -> m b) -> m b 
 
 instance Monad Parser where 
-    return a = Parser (\cs -> [(a,cs)]) 
-        -- return always succeeds
-        -- return does not do anything to the input it consumes 
-    -- p >>= f = Parser (\cs -> concat [parse (f a) cs' | (a, cs') <- parse p cs]) 
-    (Parser p) >>= f = Parser $ \cs -> 
-        _ (p cs)
+    return a = Parser (\cs -> [(a,cs)])
+    p >>= f = Parser (\cs -> concat 
+        [parse (f a) cs' | (a, cs') <- parse p cs]) 
 
 -- considering Maybe as a monad 
 
-{-
 instance Monad Maybe where 
     return a = Just a 
     (>>=) (Just a) fun = fun a 
@@ -170,4 +164,4 @@ apply p = parse
     (do 
         space 
         p)
--}  
+
