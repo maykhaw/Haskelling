@@ -1,8 +1,11 @@
 -- notes from Monadic Parsing in Haskell by Hutton, Meijer 
 
+import Test.QuickCheck
 import Prelude hiding (Monad) 
 
 newtype Parser a = Parser { unparser :: (String -> [(a,String)]) } 
+parse = unparser
+
 
 -- item consumes single characters unconditionally 
 item :: Parser Char 
@@ -10,6 +13,22 @@ item = Parser (\cs ->
     case cs of 
         "" -> [] 
         (c : cs) -> [(c,cs)]) 
+
+seq :: Parser a -> Parser b -> Parser (a,b)
+-- seq pa pb = a >>= \a -> pb >>= return (a,b)
+seq pa pb = do
+    a <- pa 
+    b <- pb 
+    return (a,b) 
+
+sequence :: Parser a -> Parser b -> Parser (a,b)
+sequence (Parser pa) (Parser pb) = Parser $ \cs ->
+    let (a, rest) = pa cs 
+        (b, res) = pb rest in 
+    (a,b) 
+
+testSeq :: Parser a -> Parser b -> Property 
+testSeq (Parser pa) (Parser pb) = seq pa pb === sequence pa pb 
 
 -- itemlist can generate a list of tuples consisting of the nth element and the rest of the elements after n 
 itemlist :: Parser Char
@@ -27,8 +46,11 @@ instance Monad Parser where
         -- return always succeeds
         -- return does not do anything to the input it consumes 
     -- p >>= f = Parser (\cs -> concat [parse (f a) cs' | (a, cs') <- parse p cs]) 
-    (Parser p) >>= f = Parser $ \cs -> 
-        _ (p cs)
+    -- p >>= f = Parser (\cs -> concatMap (\(a,cs) -> parse (f a) cs') (parse p cs)) 
+    (Parser p) >>= f = Parser $ \cs ->
+        concatMap k (p cs)
+        where k (a, string) = unparser (f a) string
+--        _ (map (f . fst) (p cs))
 
 -- considering Maybe as a monad 
 
