@@ -6,13 +6,21 @@ import Prelude hiding (Monad)
 newtype Parser a = Parser { unparser :: (String -> [(a,String)]) } 
 parse = unparser
 
+newtype Parser' a = Parser { unparser' :: String -> Maybe (a, String)
 
 -- item consumes single characters unconditionally 
 item :: Parser Char 
-item = Parser (\cs -> 
+item = Parser $ \cs -> 
     case cs of 
-        "" -> [] 
-        (c : cs) -> [(c,cs)]) 
+        "" -> zero -- []
+        (c : cs) -> return (c,cs) 
+
+item' :: Parser Char
+item' = Parser' $ \cs ->
+    case cs of
+        "" -> zero -- Nothing
+        (c : cs) -> return (c, cs)
+        
 
 seq :: Parser a -> Parser b -> Parser (a,b)
 -- seq pa pb = a >>= \a -> pb >>= return (a,b)
@@ -21,11 +29,19 @@ seq pa pb = do
     b <- pb 
     return (a,b) 
 
+seq' :: Parser' a -> Parser' b -> Parser' (a,b)
+-- seq pa pb = a >>= \a -> pb >>= return (a,b)
+seq' pa pb = do
+    a <- pa 
+    b <- pb 
+    return (a,b) 
+
+
 sequence :: Parser a -> Parser b -> Parser (a,b)
 sequence (Parser pa) (Parser pb) = Parser $ \cs ->
     let (a, rest) = pa cs 
         (b, res) = pb rest in 
-    (a,b) 
+    (a,b) -- not finished..
 
 testSeq :: Parser a -> Parser b -> Property 
 testSeq (Parser pa) (Parser pb) = seq pa pb === sequence pa pb 
@@ -42,15 +58,26 @@ class Monad m where
     (>>=) :: m a -> (a -> m b) -> m b 
 
 instance Monad Parser where 
-    return a = Parser (\cs -> [(a,cs)]) 
+    return a = Parser (\cs -> return (a,cs)) 
         -- return always succeeds
         -- return does not do anything to the input it consumes 
     -- p >>= f = Parser (\cs -> concat [parse (f a) cs' | (a, cs') <- parse p cs]) 
     -- p >>= f = Parser (\cs -> concatMap (\(a,cs) -> parse (f a) cs') (parse p cs)) 
     (Parser p) >>= f = Parser $ \cs ->
-        concatMap k (p cs)
+        -- concatMap k (p cs)
+        -- :: [a] -> (a -> [b]) -> [b]
+        p cs >>= k
         where k (a, string) = unparser (f a) string
 --        _ (map (f . fst) (p cs))
+
+instance Monad Parser' where
+    return a = Parser' $ \cs -> return (a, cs)
+    (Parser' p) >>= f = Parser' $ \cs ->
+        p cs >>= k
+        where k (a, string) -> unparser' (f a) string
+--        case p cs where
+--            Nothing -> Nothing
+--            Just (a, string) -> unparser' (f a) string
 
 -- considering Maybe as a monad 
 
