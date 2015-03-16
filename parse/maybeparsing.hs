@@ -119,3 +119,32 @@ decimal = fmap f $ parseLots parseDigit where
     f :: [Int] -> Int
     f l = foldl g 0 l
     g a x = 10 * a + x
+
+openSquare :: Parser Char 
+openSquare = Parser $ \str -> 
+    case str of 
+        (x : xs) | x == "[" -> Just (x, xs)  
+        _ -> Nothing 
+
+closeSquare :: Parser Char 
+closeSquare = Parser $ \str -> 
+    case str of 
+        (x : xs) | x == "]" -> Just (x, xs) 
+        _ -> Nothing 
+
+parseComma :: Parser Char 
+parseComma = Parser $ \str -> 
+    case str of 
+        (x : xs) | x == "," -> Just (x, xs) 
+        _ -> Nothing 
+
+parseSpace :: Parser Char 
+parseSpace = Parser $ \str -> 
+    case str of 
+        (x : xs) | isSpace x -> Just (x, xs) 
+        _ Nothing 
+
+listInt :: Parser [Int] 
+listInt = Parser $ \str -> 
+    case parse openSquare str of 
+        Just (x, xs
