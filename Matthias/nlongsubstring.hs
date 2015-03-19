@@ -138,3 +138,4 @@ prop_nsubs (NonNegative n) l = nsubs n l === bruteforce n l
 
 prop_nsubs2 :: NonNegative Int -> String -> Bool 
 prop_nsubs2 (NonNegative n) l = nsubs n l `isInfixOf` l 
+

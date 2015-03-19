@@ -1,9 +1,11 @@
 {-# LANGUAGE TupleSections, ViewPatterns #-}
 import Prelude hiding (seq, sequence)
 import Data.Char 
+import Data.Maybe
 import Test.QuickCheck 
 import Test.QuickCheck.Function
 import Control.Applicative 
+
 
 newtype Parser a = Parser { parse :: [Char] -> Maybe (a, [Char]) }
 newtype ParserQ a = ParserQ (Fun [Char] (Maybe (a, [Char])))
@@ -14,6 +16,18 @@ toParser (ParserQ p) = Parser (apply p)
 -- Parser :: (String -> Maybe (a, [Char])) -> Parser a
 
 -- type Parser a = [Char] -> Maybe (a, Char)
+
+instance Monad Parser where 
+    return = pure
+    a >>= fb = Parser $ 
+        \str -> case parse a str of 
+            Nothing -> Nothing 
+            Just (a, str) -> parse (fb a) str 
+instance Applicative Parser where 
+    pure a = Parser $ 
+        \str -> Just (a, str) 
+    a <*> b = fmap (uncurry ($)) $ seq a b
+
 
 prop_works :: Fun Char Char -> ParserQ Char -> String -> Property
 prop_works (Fun _ f) p s = parse (f <$> toParser p) s === parse (toParser p) (f <$> s)
@@ -37,6 +51,9 @@ instance Functor Parser where
         case a str of 
             Nothing -> Nothing 
             Just (a, str) -> Just (f a, str) 
+
+char :: Char -> Parser Char
+char c = filterP (==c) onechar
 
 onechar :: Parser Char 
 onechar = Parser $ \str -> 
@@ -102,10 +119,16 @@ sequence [] = Parser $ \str -> Just ([], str)
 sequence (x : xs) = Parser $ \str -> 
     case parse x str of
         Nothing -> Nothing 
-        Just (a, str) -> -- fmap (a :) $ parse (sequence xs) str  --- This is actually wrong.  Exercise: fix it.
+        Just (a, str) -> -- parse (fmap (a :) $ (sequence xs)) str  --- This is actually wrong.  Exercise: fix it.
             case parse (sequence xs) str of 
                 Nothing -> Nothing 
                 Just (as, str) -> Just (a : as, str) 
+
+parseLots1 :: Parser a -> Parser [a]
+parseLots1 p = do
+    x <- p
+    xs <- parseLots p
+    return (x : xs)
 
 parseLots :: Parser a -> Parser [a]
 parseLots pa = Parser $ \str -> 
@@ -114,37 +137,81 @@ parseLots pa = Parser $ \str ->
         Just (a, str) -> parse (fmap (a :) $ parseLots pa) str 
 
 decimal :: Parser Int
-decimal = fmap f $ parseLots parseDigit where
+decimal = fmap f $ parseLots1 parseDigit where
     -- You've written this before:
     f :: [Int] -> Int
     f l = foldl g 0 l
     g a x = 10 * a + x
 
 openSquare :: Parser Char 
-openSquare = Parser $ \str -> 
-    case str of 
-        (x : xs) | x == "[" -> Just (x, xs)  
-        _ -> Nothing 
+openSquare = char '['
 
 closeSquare :: Parser Char 
-closeSquare = Parser $ \str -> 
-    case str of 
-        (x : xs) | x == "]" -> Just (x, xs) 
-        _ -> Nothing 
+closeSquare = char ']'
 
 parseComma :: Parser Char 
 parseComma = Parser $ \str -> 
     case str of 
-        (x : xs) | x == "," -> Just (x, xs) 
+        (x : xs) | x == ',' -> Just (x, xs) 
         _ -> Nothing 
 
 parseSpace :: Parser Char 
 parseSpace = Parser $ \str -> 
     case str of 
         (x : xs) | isSpace x -> Just (x, xs) 
-        _ Nothing 
+        _ -> Nothing 
 
-listInt :: Parser [Int] 
+eitherab :: Parser a -> Parser b -> Parser (Either a b)
+eitherab pa pb = Parser $ \str -> 
+    case parse pa str of 
+        Just (x, xs) -> Just (Left x, xs) 
+        Nothing -> case parse pb str of 
+            Just (x, xs) -> Just (Right x, xs) 
+            Nothing -> Nothing 
+
+paa :: Parser a -> Parser b -> Parser a 
+paa = (<*)
+
+pab :: Parser a -> Parser b -> Parser b 
+pab = (*>)
+
+maybepa :: Parser a -> Parser (Maybe a) 
+maybepa pa = fmap (either Just id) $ eitherab pa (return Nothing) 
+
+pInts = do
+    char '['
+    x <- maybepa decimalsSeparatedByCommas
+    char ']'
+    return (fromMaybe [] x)
+
+decimalsSeparatedByCommas :: Parser [Int]
+decimalsSeparatedByCommas = do
+    parseLots $ char ' '
+    d <- decimal
+    ds <- parseLots $ do
+            parseLots $ char ' '
+            char ','
+            parseLots $ char ' '
+            decimal
+    return (d : ds)
+
+
+{-listInt :: Parser [Int] 
 listInt = Parser $ \str -> 
     case parse openSquare str of 
-        Just (x, xs
+        Just (x, xs) -> case parse $ (many parseDigit <|> parseComma <|> parseSpace) of 
+            Just (insides, remainder) -> case parse closeSquare remainder of 
+                Just (closeBracket, rest) -> -- how to combine x + insides + closeBracket ? 
+                Nothing -> Nothing 
+            Nothing -> Nothing 
+        Nothing -> Nothing -} 
+
+-- sequenceInt :: Parser [Int] 
+-- sequenceInt = sequence (openSquare : parseDigit : parseLots (parseDigit <|> parseSpace <|> parseComma) : closeSquare) 
+
+-- parse (parseLots $ choice of parseSpace / parseComma / parseDigit) xs 
+-- Nothing -> Nothing 
+-- Just (insides, remainder) -> parse closeSquare remainder 
+    -- Nothing -> Nothing
+    -- Just (y, ys) -> somehow return Parser ([Int], ys) 
+
