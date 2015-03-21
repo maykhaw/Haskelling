@@ -5,7 +5,7 @@ import Data.Maybe
 import Test.QuickCheck 
 import Test.QuickCheck.Function
 import Control.Applicative 
-
+import Data.Traversable (traverse) 
 
 newtype Parser a = Parser { parse :: [Char] -> Maybe (a, [Char]) }
 newtype ParserQ a = ParserQ (Fun [Char] (Maybe (a, [Char])))
@@ -51,6 +51,11 @@ instance Functor Parser where
         case a str of 
             Nothing -> Nothing 
             Just (a, str) -> Just (f a, str) 
+
+-- success stays success 
+-- failure stays failure
+-- nothing is added / removed 
+-- the new resulting parser is only different in the value 
 
 char :: Char -> Parser Char
 char c = filterP (==c) onechar
@@ -143,6 +148,8 @@ decimal = fmap f $ parseLots1 parseDigit where
     f l = foldl g 0 l
     g a x = 10 * a + x
 
+-- fmap for parser can change the value that is returned, but it does not change if it succeeds/fails or how many characters are consumed 
+
 openSquare :: Parser Char 
 openSquare = char '['
 
@@ -168,6 +175,9 @@ eitherab pa pb = Parser $ \str ->
         Nothing -> case parse pb str of 
             Just (x, xs) -> Just (Right x, xs) 
             Nothing -> Nothing 
+
+alt :: Parser a -> Parser a -> Parser a 
+alt x y = fmap (either id id) $ eitherab x y 
 
 paa :: Parser a -> Parser b -> Parser a 
 paa = (<*)
@@ -215,3 +225,40 @@ listInt = Parser $ \str ->
     -- Nothing -> Nothing
     -- Just (y, ys) -> somehow return Parser ([Int], ys) 
 
+parseExactString :: String -> Parser String 
+parseExactString [] = return [] 
+parseExactString (x : xs) = Parser $ \str -> 
+    case str of 
+        (y : ys) | y == x -> parse (parseExactString xs) ys 
+        _ -> Nothing 
+
+sequenceExactString :: String -> Parser String 
+sequenceExactString l = sequence (map char l) 
+
+traverseExactString :: String -> Parser String 
+traverseExactString = traverse char 
+
+string = traverseExactString 
+
+makeMaybe :: Parser a -> Parser (Maybe a) 
+makeMaybe pa = alt (Nothing <$ traverseExactString "Nothing") $ do 
+    string "Just" 
+    parseLots1 $ char ' '
+    fmap Just pa 
+
+
+maybeList :: Parser a -> Parser [Maybe a] 
+maybeList pa = do 
+    char '[' 
+    x <- maybepa $ do 
+        parseLots $ char ' '
+        d <- makeMaybe pa 
+        ds <- parseLots $ do 
+            parseLots $ char ' ' 
+            char ',' 
+            parseLots $ char ' ' 
+            makeMaybe pa 
+        return (d : ds) 
+    char ']' 
+    return (fromMaybe [] x) 
+        
