@@ -1,0 +1,13 @@
+import Test.QuickCheck
+import Data.List 
+
+isPalindrome :: String -> Bool 
+isPalindrome l = and $ zipWith (==) l $ reverse l 
+
+indexer :: String -> Int 
+indexer l = let newl = zip [0..] $ zip l (reverse l) 
+                number = fst $ head $ dropWhile (\x -> (uncurry (==)) $ snd x) newl 
+                helper :: Int -> String -> Bool 
+                helper n l = isPalindrome (take n l ++ (drop newn l))
+            if helper n l then n
+                          else (length l) - (n + 1) 
