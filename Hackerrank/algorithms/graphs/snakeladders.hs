@@ -29,13 +29,27 @@ onetosix sandl position = let pos = map (+ position) onesix
                                 _ -> x in 
                           map (helper sandl) pos 
 
+prop_onetosix :: M.Map Int Int -> Int -> Bool  
+prop_onetosix sandl pos = 6 >= length (onetosix sandl pos) 
+
+
+listTuples :: ([a], [a]) -> (a, [a]) 
+listTuples (xs,ys) = map (\x -> (x, x:ys)) xs 
+
+prop_Tuples1 :: ([Char], [Char]) -> Property 
+prop_Tuples1 (xs,ys) = let xl = length xs in 
+                       xl === (length $ listTuples (xs,ys)) 
+
+prop_Tuples2 :: ([Char], [Char]) -> Property 
+prop_Tuples2 xs = and (\x -> fst x == (head $ snd x)) $ listTuples xs
 
 
 
 -- we want to create tuples (pos, [previous positions]) 
 -- we assume that positions contains the above tuples, where [previous positions] is the existing shortest path to pos in each tuple 
 nextSix :: M.Map Int Int -> M.Map Int [Int] -> M.Map Int [Int] 
-nextSix sandl positions = let newPs = concatMap (\(xs,ys) -> map (\x -> (x,x:ys)) xs) $ M.toList $ M.map (onetosix sandl) positions 
+nextSix sandl positions = let tuplePs = M.toList positions 
+                              newPs = map (\(x,y) -> onetosix sandl $ fst x) tuplePs 
                               helper xs ys = if length xs < length ys then xs else ys in 
                           M.fromListWith helper newPs 
                               
