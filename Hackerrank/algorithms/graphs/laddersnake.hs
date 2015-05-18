@@ -1,36 +1,37 @@
-import Data.Set (Set, (\\))
-import qualified Data.Set as S
-import Test.QuickCheck 
-import Data.Map.Strict (Map) 
-import qualified Data.Map.Strict as M 
+{-# LANGUAGE TupleSections #-} 
 import Control.Monad 
-import Data.Maybe 
+import Dijkstra
+import Data.Set (Set) 
+import qualified Data.Set as S 
+import Data.Map (Map) 
+import qualified Data.Map as M 
 
-returnHist :: Ord a =>  a -> Map a [a] -> Map a [a] 
-returnHist new previous history = M.union history $ singleton new (new : fromJust $ M.lookup previous history)  
+onesix = S.fromList [1..6] 
 
+oneStep :: Map Int Int -> Int -> Set Int 
+oneStep moves pos = let helper :: Int -> Int 
+                        helper x = case M.lookup x moves of 
+                            Just y -> y 
+                            _ -> x in 
+                    S.map helper $ S.map (+ pos) onesix 
 
-dijkstra :: Ord a => (a -> Set a) -> a -> a -> Maybe [a] 
-dijkstra next start end = 
-    let helper :: a -> Map a [a] -> Maybe [a] 
-        helper pos history = if pos 
-        
-        
-        
-        
-        
-        
-        
-        let newpos = S.filter (\x -> elem x $ M.keys history) $ nextpos in 
-                                 if S.member end newpos then -- return Just path 
-                                                        else if null newpos then Nothing 
-                                                                            else -- recursive call on helper (next newpos) (new history)  
+toTuple [x,y] = (x,y)  
 
 
 
 
+getTestcase = do
+    nLadders <- readLn
+    lads <- replicateM nLadders getLine 
+    let ladders = map (toTuple . map read . words) lads 
+    nSnakes <- readLn  
+    snax <- replicateM nSnakes getLine
+    let snakes = map (toTuple . map read . words) snax 
+    let moves = M.fromList $ snakes ++ ladders 
+    print $ dijkstraSteps (oneStep moves) 1 100 
 
-    let nextfrontier :: a -> Map a [a] -> Map a [a] 
-        nextfrontier pos history = let newpos = S.filter (\x -> elem x $ M.keys history) $ next pos 
-                                       hist = M.lookup pos history in 
-                                   
+
+
+main = do
+    cases <- readLn 
+    replicateM cases getTestcase 
