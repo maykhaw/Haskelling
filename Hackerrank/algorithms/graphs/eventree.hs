@@ -1,6 +1,7 @@
 {-# LANGUAGE TupleSections #-}
 import Test.QuickCheck 
 import Control.Monad 
+import qualified Data.Set as S
 
 data Tree a = Empty 
             | Node a [Tree a] 
@@ -10,8 +11,22 @@ data Tree a = Empty
 -- insertTree takes a new connection and inserts it into the tree 
 insertTree :: Tree Int -> (Int, Int) -> Tree Int 
 
+
+-- findLeafs takes a bunch of connections and returns the leaf nodes 
+findLeafs :: [(Int, Int)] -> [Int]
+findLeafs l = 
+    let list = sort $ a ++ b 
+            where (a,b) = unzip l in 
+    concat $ filter (\x -> 1 == length x) $ group list  
+
+findConns :: [(Int, Int)] -> Int -> [Int] 
+findConns l node = map fst $ filter (\(x,y) -> x == node || y == node) l 
+
 -- createTree takes a bunch of connections and creates a tree 
-createTree :: [(Int, Int)] -> Tree Int 
+createTree :: [(Int, Int)] -> Tree Int
+createTree l = 
+    let leaves = findLeafs l 
+        leafConns = map (\x -> (x, findConns l x)) leaves 
 
 -- numNodes counts the number of nodes 
 numNodes :: Tree a -> Int
