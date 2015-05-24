@@ -17,21 +17,25 @@ data Connection a = Connection { start :: a
 nodeList :: (Ord a, Eq a) => [Connection a] -> [a] 
 nodeList l = sort $ nub $ (map start l) ++ (map end l) 
 
-normalise :: Ord a => Connection a -> Connection a 
-normalise (Connection x y) = if x < y then Connection x y 
-                                      else Connection y x 
+swap :: Ord a => Connection a -> Connection a 
+swap (Connection x y) = Connection y x 
 
-sortConns :: Ord a => [Connection a] -> [Connection a] 
-sortConns l = sort $ map normalise l 
+doubleConns :: Ord a => [Connection a] -> [Connection a] 
+doubleConns l = sort $ l ++ map swap l 
 
 mapConns  :: (Eq a, Ord a) => [Connection a] -> Map a [a] 
-mapConns  l = mapper $ groupBy helper $ sortConns l
-    where helper :: Eq a => Connection a -> Connection a -> Bool 
-          helper (Connection a b) (Connection x y) = a == x 
-          mapper :: Ord a => [[Connection a]] -> Map a [a] 
-          mapper l = let helpMap :: [Connection a] -> (a, [a])
-                         helpMap list = (start $ head $ list, map end list) in  
-                     M.fromList $ map helpMap l 
+mapConns  l = M.fromListWith (++) $ map (\(x,y) -> (x, [y])) $ map toTuple $ doubleConns l 
+
+mapTree :: forall a . (Eq a, Ord a) => Map a [a] -> Tree a 
+mapTree l 
+    | M.null l = error "no tree" 
+    | otherwise = 
+        let (key, value) = M.findMin l
+            helper :: a -> a -> Tree a 
+            helper from curr = 
+                let children = delete from $ M.findWithDefault [] curr l in 
+                Node curr $ map (helper curr) children in 
+        Node key $ map (helper key) value 
 
 singleTree :: a -> Tree a 
 singleTree a = Node a [] 
@@ -62,6 +66,9 @@ createTree l =
 
 toConn :: (a, a) -> Connection a 
 toConn (a, b) = Connection a b 
+
+toTuple :: Connection a -> (a, a) 
+toTuple (Connection x y) = (x, y) 
 
 treeSize :: Tree a -> Int 
 treeSize (Node a trees) = 1 + sum (map treeSize trees) 
