@@ -3,8 +3,7 @@ import Test.QuickCheck
 import Control.Monad 
 import qualified Data.Set as S
 
-data Tree a = Empty 
-            | Node a [Tree a] 
+data Tree a = Node a [Tree a] 
             deriving (Eq, Ord, Show, Read) 
 
 
@@ -19,8 +18,14 @@ findLeafs l =
             where (a,b) = unzip l in 
     concat $ filter (\x -> 1 == length x) $ group list  
 
+-- findConns takes a node and finds the other nodes that connect to it
 findConns :: [(Int, Int)] -> Int -> [Int] 
 findConns l node = map fst $ filter (\(x,y) -> x == node || y == node) l 
+
+-- makeLeafTrees is designed to work with leafConns in createTree 
+-- the first Int 
+makeLeafTrees :: (Int, [Int]) -> Tree Int 
+makeLeafTrees (x, [y]) = Node y [Node x []]
 
 -- createTree takes a bunch of connections and creates a tree 
 createTree :: [(Int, Int)] -> Tree Int
