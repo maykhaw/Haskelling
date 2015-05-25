@@ -55,17 +55,23 @@ toTuple (Connection x y) = (x, y)
 treeSize :: Tree a -> Int 
 treeSize (Node a trees) = 1 + sum (map treeSize trees) 
 
-firstOdd :: [Int] -> Maybe Int 
+firstOdd :: [(Int, a)] -> Maybe a  
 firstOdd [] = Nothing 
-firstOdd (x : xs) = if odd x then Just x 
-                             else firstOdd xs 
+firstOdd (x : xs) = if odd $ fst x then Just $ snd x 
+                                   else firstOdd xs 
 
+deletefirstOdd :: [(Int,a)] -> [a] 
+deletefirstOdd l = snd $ unzip $ helper l 
+    where helper :: [(Int, a)] -> [(Int, a)] 
+          helper (y : ys) = if odd $ fst y then ys 
+                                           else y : helper ys 
+          helper [] = [] 
 
-cutter :: Tree a -> Maybe [Tree a]  
-cutter tree@(Node a subtrees) = 
-    let size = treeSize tree 
-        subtreeSize = map treeSize subtrees 
-        
-    if odd (treeSize tree) then Nothing 
-                           else Just 
-
+cutter :: Tree a -> Maybe (Tree a, [Tree a]) 
+cutter tree@(Node a trees) = 
+    case odd $ treeSize tree of 
+        True -> Nothing 
+        _ -> case firstOdd subtreeSize of 
+            Nothing -> Nothing 
+            Just x -> Just (Node a [x], deletefirstOdd subtreeSize)
+    where subtreeSize = map (\x -> (treeSize x, x)) trees 
