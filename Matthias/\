@@ -1,0 +1,31 @@
+import Data.List
+import Data.Char 
+import Data.Either 
+import Test.QuickCheck 
+
+data Op = Add 
+        | Mul 
+
+fromString :: String -> [[Either Op Int]]
+fromString l = groupBy eitherGroup $ map helper l 
+    where helper :: Char -> Either Op Int  
+          helper '+' = Left Add 
+          helper '*' = Left Mul 
+          helper x = if isDigit x then Right $ digitToInt x  
+                                  else error "not applicable char" 
+          eitherGroup :: Either Op Int -> Either Op Int -> Bool 
+          eitherGroup (Left _) (Left _) = True
+          eitherGroup (Right _) (Right _) = True 
+          eitherGroup _ _ = False 
+
+decToInt :: [Int] -> Int 
+decToInt = foldl helper 0 
+    where helper :: Int -> Int -> Int 
+          helper a b = 10 * a + b 
+
+-- we drop any extra operations, as in [Add, Mul, Add], at this stage 
+toListsOpInt :: [[Either Op Int]] -> [Either Op Int]
+toListsOpInt = fmap decToInt $ map helper 
+where helper :: [Either Op Int] -> Either Op [Int] 
+      helper ((Left x) : _) = Left $ x 
+      helper list@((Right x) : _) = Right $ rights list 
