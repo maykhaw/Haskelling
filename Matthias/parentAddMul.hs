@@ -4,10 +4,12 @@ import Data.Char
 import Data.Either 
 import Test.QuickCheck 
 
-data Expr = NumExpr Op NumExpr  
+data NumExpr = Expr NumExpr Op NumExpr  
+             | Num Int  
 
-data NumExpr = Expr 
-             | Int 
+isNum :: NumExpr -> Bool 
+isNum (Expr _ _ _) = False 
+isNum _ = True
 
 data Sym = Parent Parent 
          | Op Op 
@@ -19,14 +21,14 @@ data Parent = Open
             | Close 
 
 fromStringtoDigit :: String -> [Either Sym Char] 
-fromStringtoDigit l = map helper l
+fromStringtoDigit = map helper
     where helper :: Char -> Either Sym Char  
           helper '(' = Left $ Parent Open 
           helper ')' = Left $ Parent Close 
           helper '+' = Left $ Op Add 
           helper '*' = Left $ Op Mul 
-          helper x = if isDigit x then Right $ x  
-                                  else error "not Int or Sym" 
+          helper x | isDigit x = Right x 
+          helper x = error $ "not Int or Sym: " ++ show x 
 
 decToInt :: [Int] -> Int
 decToInt = foldl (\a b -> a * 10 + b) 0 
@@ -46,6 +48,5 @@ toSymInt =
             Right $ decToInt $ map digitToInt $ rights val in 
     map helper 
 
-parseSymInt :: [Either Sym Int] -> [Either Sym Int] 
-parseSymInt = do
-   undefined 
+parseSymInt :: [Either Sym Int] -> [NumExpr]  
+parseSymInt = undefined 
