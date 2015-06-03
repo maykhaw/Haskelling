@@ -1,3 +1,4 @@
+import Control.Applicative 
 import Data.Maybe 
 import Data.List
 import Data.Char 
@@ -19,6 +20,56 @@ data Op = Mul
 
 data Parent = Open 
             | Close 
+
+isOpen :: Either Sym Int -> Bool 
+isOpen (Left (Parent Open)) = True
+isOpen _ = False 
+
+data Parser b a = Parser ([b] -> Maybe ([b], a))
+
+
+single :: Parser b b
+single = Parser $ \bs -> 
+    case bs of 
+        [] -> Nothing 
+        (x : xs) -> Just (xs, x) 
+
+instance Functor (Parser b) where  
+    fmap fn (Parser p) = Parser $ \bs -> 
+        case p bs of 
+            Nothing -> Nothing 
+            Just (xs, x) -> Just (xs, fn x)
+
+instance Applicative (Parser b) where 
+    pure a = Parser $ \bs -> Just (bs, a)
+    (Parser pa) <*> (Parser pb) = Parser $ \bs -> 
+        case pa bs of 
+            Nothing -> Nothing 
+            Just (bs', f) -> case pb bs' of 
+            -- pa has to return a function 
+                Nothing -> Nothing 
+                Just (bs'', x) -> Just (bs'', f x) 
+                -- we send x to the function returned by pa 
+
+instance Alternative (Parser b) where  
+    empty = Parser $ \bs -> Nothing 
+    (Parser pa) <|> (Parser pb) = Parser $ \bs -> 
+        pa bs <|> pb bs 
+
+instance Monad (Parser b) where 
+    (Parser pa) >>= f = Parser $ \bs -> 
+        case pa bs of 
+            Just (bs', b) -> case f b of 
+                -- f b returns a Parser 
+                Parser pb -> pb bs' 
+            _ -> Nothing 
+
+filterP :: (a -> Bool) -> Parser b a -> Parser b a
+filterP pred (Parser p) = Parser $ \bs -> 
+    case p bs of 
+        r@(Just (xs, x)) | pred x -> r 
+        _ -> Nothing 
+
 
 fromStringtoDigit :: String -> [Either Sym Char] 
 fromStringtoDigit = map helper
@@ -48,5 +99,10 @@ toSymInt =
             Right $ decToInt $ map digitToInt $ rights val in 
     map helper 
 
-parseSymInt :: [Either Sym Int] -> [NumExpr]  
-parseSymInt = undefined 
+parseSymInt :: Parser (Either Sym Int) NumExpr 
+parseSymInt = do
+    many $ do 
+        x <- single 
+        if isOpen x then empty 
+                    else return x 
+    return undefined 
