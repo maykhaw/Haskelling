@@ -18,6 +18,10 @@ data Sym = Parent Parent
 data Op = Mul 
         | Add 
 
+isMul :: Op -> Bool 
+isMul Mul = True
+isMul _ = False 
+
 data Parent = Open 
             | Close 
 
@@ -106,3 +110,29 @@ parseSymInt = do
         if isOpen x then empty 
                     else return x 
     return undefined 
+
+numExpr :: NumExpr -> NumExpr 
+numExpr (Num x) = Num x 
+numExpr expression@(Expr left op right) = 
+    case (left, right) of 
+    (Num x, Num y) -> if isMul op then Num (x * y) 
+                                  else Num (x + y)
+    (_, _) -> numExpr (Expr (numExpr left) op (numExpr right))
+
+-- parseOpenClose :: Parser (Either Sym Int) NumExpr 
+-- parseOpenClose = do 
+--     x <- single 
+--     case x of 
+--         (Left (Parent Open)) -> _ -- recursive call  
+--         (Left (Parent Close)) -> _ -- just get rid of it. I assume that () is to be just ignored 
+--         (Left (Op Add)) -> 
+--            -- Remove the Open and Close Parents  
+--         (Left (Op Mul)) -> 
+--             -- Remove the Open and Close Parents 
+--         Right y -> do
+--             op <- single
+--             case op of 
+--                 (Left (Parent Open)) -> _ -- recursive call  
+--                 (Left (Parent Close)) -> _ -- just get rid of it. I assume that () is to be just ignored 
+--                 (Left (Op Add)) -> 
+--                 (Left (Op Mul)) -> x * $ 
