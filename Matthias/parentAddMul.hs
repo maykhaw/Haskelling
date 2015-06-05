@@ -95,7 +95,7 @@ eitherSymInt _ _ = False
 toSymList :: [Either Sym Char] -> [[Either Sym Char]]
 toSymList = groupBy eitherSymInt 
 
-toSymInt :: [[Either Sym Char]] -> [Either Sym Int] 
+toSymInt :: [[Either Sym Char]] -> [Either Sym Int]  
 toSymInt = 
     let helper :: [Either Sym Char] -> Either Sym Int 
         helper [Left x] = Left x 
@@ -111,28 +111,46 @@ parseSymInt = do
                     else return x 
     return undefined 
 
-numExpr :: NumExpr -> NumExpr 
-numExpr (Num x) = Num x 
+numExpr :: NumExpr -> Int  
+numExpr (Num x) = x 
 numExpr expression@(Expr left op right) = 
     case (left, right) of 
-    (Num x, Num y) -> if isMul op then Num (x * y) 
-                                  else Num (x + y)
-    (_, _) -> numExpr (Expr (numExpr left) op (numExpr right))
+    (Num x, Num y) -> if isMul op then (x * y) 
+                                  else (x + y)
+    (_, _) -> numExpr (Expr (Num $ numExpr left) op (Num $ numExpr right))
 
--- parseOpenClose :: Parser (Either Sym Int) NumExpr 
--- parseOpenClose = do 
---     x <- single 
---     case x of 
---         (Left (Parent Open)) -> _ -- recursive call  
---         (Left (Parent Close)) -> _ -- just get rid of it. I assume that () is to be just ignored 
---         (Left (Op Add)) -> 
---            -- Remove the Open and Close Parents  
---         (Left (Op Mul)) -> 
---             -- Remove the Open and Close Parents 
---         Right y -> do
---             op <- single
---             case op of 
---                 (Left (Parent Open)) -> _ -- recursive call  
---                 (Left (Parent Close)) -> _ -- just get rid of it. I assume that () is to be just ignored 
---                 (Left (Op Add)) -> 
---                 (Left (Op Mul)) -> x * $ 
+-- parseOpenClose is to be called when Parse SymInt hits an open parent 
+-- in other words, the char before the x should be a Left Parent Open. 
+
+betterSymInt :: Parser (Either Sym Int) (Either Sym Int) 
+betterSymInt = do
+    x <- replicateM 3 single 
+    case x of 
+        ( Left (Parent Open)
+        , y  
+        , (Left (Parent Open))) -> case y of 
+            Left (Op Add) -> return $ Left (Op Add) 
+            Left (Op Mul) -> return $ Left (Op Mul) 
+            Right num -> return $ Right num 
+            _ -> Nothing 
+            
+
+
+parseOpenClose :: Parser (Either Sym Int) NumExpr 
+parseOpenClose = do 
+    x <- single 
+    case x of 
+        (Left (Parent Open)) -> do parseOpenClose  
+        (Left (Parent Close)) -> Nothing -- assume failure  
+        (Left (Op Add)) -> do 
+            z <- single 
+
+             
+        (Left (Op Mul)) -> Nothing -- assume failure 
+        Right y -> do
+            op <- single
+            case op of 
+                (Left (Parent Open)) -> _ -- recursive call on parseOpenClose 
+                (Left (Parent Close)) -> _ -- just get rid of it. I assume that () is to be just ignored 
+                (Left (Op Add)) -> 
+                (Left (Op Mul)) -> x * $ 
