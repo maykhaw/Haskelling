@@ -7,30 +7,88 @@ import Test.QuickCheck
 
 data NumExpr = Expr NumExpr Op NumExpr  
              | Num Int  
+             deriving (Eq, Show, Ord) 
 
 isNum :: NumExpr -> Bool 
 isNum (Expr _ _ _) = False 
 isNum _ = True
 
+
+parseNum :: Parser (Either Sym Int) NumExpr  
+parseNum = do 
+    x <- single 
+    case x of 
+        (Left _) -> empty  
+        (Right y) -> return $ Num y 
+
 data Sym = Parent Parent 
          | Op Op 
+         deriving (Eq, Show, Ord) 
 
 data Op = Mul 
         | Add 
+        deriving (Eq, Show, Ord) 
+
+isAdd :: Op -> Bool 
+isAdd Add = True
+isAdd _ = False 
+
+
+parseAdd :: Parser (Either Sym Int) Op  
+parseAdd = do 
+    x <- single 
+    case x of 
+        Left (Op Add) -> return Add  
+        _ -> empty  
 
 isMul :: Op -> Bool 
 isMul Mul = True
 isMul _ = False 
 
+
+parseMul :: Parser (Either Sym Int) Op 
+parseMul = do 
+    x <- single 
+    case x of 
+        Left (Op Mul) -> return Mul 
+        _ -> empty  
+
 data Parent = Open 
             | Close 
+            deriving (Eq, Show, Ord) 
+
+isClose :: Either Sym Int -> Bool 
+isClose (Left (Parent Close)) = True
+isClose _ = False 
 
 isOpen :: Either Sym Int -> Bool 
 isOpen (Left (Parent Open)) = True
 isOpen _ = False 
 
+parseClose :: Parser (Either Sym Int) Parent 
+parseClose = do 
+    filterP isClose single 
+    return Close 
+
+parseOpen :: Parser (Either Sym Int) Parent 
+parseOpen = do 
+    filterP isOpen single 
+    return Open 
+
+filterP :: (a -> Bool) -> Parser b a -> Parser b a
+filterP pred p = do
+    x <- p 
+    if pred x then return x 
+              else empty 
+
 data Parser b a = Parser ([b] -> Maybe ([b], a))
 
+parseComplete :: (Show a, Show b) => Parser b a -> [b] -> Either String a  
+parseComplete (Parser p) bs = 
+    case p bs of
+        Nothing -> Left "parse failed" 
+        Just ([], x) -> Right x 
+        Just (rest, x) -> Left $ show x ++ show rest 
 
 single :: Parser b b
 single = Parser $ \bs -> 
@@ -67,13 +125,6 @@ instance Monad (Parser b) where
                 -- f b returns a Parser 
                 Parser pb -> pb bs' 
             _ -> Nothing 
-
-filterP :: (a -> Bool) -> Parser b a -> Parser b a
-filterP pred (Parser p) = Parser $ \bs -> 
-    case p bs of 
-        r@(Just (xs, x)) | pred x -> r 
-        _ -> Nothing 
-
 
 fromStringtoDigit :: String -> [Either Sym Char] 
 fromStringtoDigit = map helper
@@ -122,35 +173,30 @@ numExpr expression@(Expr left op right) =
 -- parseOpenClose is to be called when Parse SymInt hits an open parent 
 -- in other words, the char before the x should be a Left Parent Open. 
 
-betterSymInt :: Parser (Either Sym Int) (Either Sym Int) 
-betterSymInt = do
-    x <- replicateM 3 single 
-    case x of 
-        ( Left (Parent Open)
-        , y  
-        , (Left (Parent Open))) -> case y of 
-            Left (Op Add) -> return $ Left (Op Add) 
-            Left (Op Mul) -> return $ Left (Op Mul) 
-            Right num -> return $ Right num 
-            _ -> Nothing 
-            
-
-
 parseOpenClose :: Parser (Either Sym Int) NumExpr 
-parseOpenClose = do 
-    x <- single 
-    case x of 
-        (Left (Parent Open)) -> do parseOpenClose  
-        (Left (Parent Close)) -> Nothing -- assume failure  
-        (Left (Op Add)) -> do 
-            z <- single 
+parseOpenClose = openclose <|> fmap f sum <|> parseNum 
+    where openclose = do 
+            parseOpen 
+            x <- parseOpenClose
+            parseClose 
+            return x 
+          sum = do 
+            p <- product 
+            ps <- many $ do
+                parseAdd 
+                product 
+            return $ p : ps 
+          product = do 
+            x <- parseOpenClose 
+            xs <- many $ do 
+                parseMul 
+                parseOpenClose 
+            return $ x : xs 
+          f :: [[NumExpr]] -> NumExpr 
+          f = summit . map prod 
+            where summit :: [NumExpr] -> NumExpr
+                  summit l = foldr1 (\x y -> Expr x Add y) l
+                  prod :: [NumExpr] -> NumExpr 
+                  prod = foldr1 (\x y -> Expr x Mul y) 
 
-             
-        (Left (Op Mul)) -> Nothing -- assume failure 
-        Right y -> do
-            op <- single
-            case op of 
-                (Left (Parent Open)) -> _ -- recursive call on parseOpenClose 
-                (Left (Parent Close)) -> _ -- just get rid of it. I assume that () is to be just ignored 
-                (Left (Op Add)) -> 
-                (Left (Op Mul)) -> x * $ 
+fromStringtoInt = fmap numExpr . parseComplete parseOpenClose . toSymInt . toSymList . fromStringtoDigit   
