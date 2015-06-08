@@ -18,7 +18,7 @@ parseNum :: Parser (Either Sym Int) NumExpr
 parseNum = do 
     x <- single 
     case x of 
-        (Left _) -> empty  
+        l@(Left _) -> empty' $ "expected Right Int, got: " ++ show l
         (Right y) -> return $ Num y 
 
 data Sym = Parent Parent 
@@ -39,7 +39,7 @@ parseAdd = do
     x <- single 
     case x of 
         Left (Op Add) -> return Add  
-        _ -> empty  
+        r -> empty' $ "expected Left (Op add), got " ++ show r
 
 isMul :: Op -> Bool 
 isMul Mul = True
@@ -51,7 +51,7 @@ parseMul = do
     x <- single 
     case x of 
         Left (Op Mul) -> return Mul 
-        _ -> empty  
+        r -> empty' $ "expected Left (Op Mul), got " ++ show r  
 
 data Parent = Open 
             | Close 
@@ -75,56 +75,54 @@ parseOpen = do
     filterP isOpen single 
     return Open 
 
-filterP :: (a -> Bool) -> Parser b a -> Parser b a
+filterP :: Show a => (a -> Bool) -> Parser b a -> Parser b a
 filterP pred p = do
     x <- p 
     if pred x then return x 
-              else empty 
+              else empty' $ "expected predicate to hold.  But it didn't, on " ++ show x
 
-data Parser b a = Parser ([b] -> Maybe ([b], a))
+data Parser b a = Parser ([b] -> Either String ([b], a))
 
 parseComplete :: (Show a, Show b) => Parser b a -> [b] -> Either String a  
 parseComplete (Parser p) bs = 
     case p bs of
-        Nothing -> Left "parse failed" 
-        Just ([], x) -> Right x 
-        Just (rest, x) -> Left $ show x ++ show rest 
+        Left s -> Left $ "parse failed: " ++ s
+        Right ([], x) -> Right x 
+        Right (rest, x) -> Left $ "Got " ++ show x ++ ". Left over " ++ show rest 
 
 single :: Parser b b
 single = Parser $ \bs -> 
     case bs of 
-        [] -> Nothing 
-        (x : xs) -> Just (xs, x) 
+        [] -> Left "Expected item. Found end of stream."
+        (x : xs) -> Right (xs, x) 
 
 instance Functor (Parser b) where  
-    fmap fn (Parser p) = Parser $ \bs -> 
-        case p bs of 
-            Nothing -> Nothing 
-            Just (xs, x) -> Just (xs, fn x)
+    fmap fn (Parser p) = Parser $ (fmap.fmap.fmap) fn p 
 
 instance Applicative (Parser b) where 
-    pure a = Parser $ \bs -> Just (bs, a)
+    pure a = Parser $ \bs -> pure (bs, a)
     (Parser pa) <*> (Parser pb) = Parser $ \bs -> 
         case pa bs of 
-            Nothing -> Nothing 
-            Just (bs', f) -> case pb bs' of 
+            Left s -> Left s
+            Right (bs', f) -> case pb bs' of 
             -- pa has to return a function 
-                Nothing -> Nothing 
-                Just (bs'', x) -> Just (bs'', f x) 
+                Left s -> Left s
+                Right (bs'', x) -> Right (bs'', f x) 
                 -- we send x to the function returned by pa 
 
+empty' s = Parser $ \bs -> Left s
 instance Alternative (Parser b) where  
-    empty = Parser $ \bs -> Nothing 
+    empty = Parser $ \bs -> Left "Failed parse."
     (Parser pa) <|> (Parser pb) = Parser $ \bs -> 
         pa bs <|> pb bs 
 
 instance Monad (Parser b) where 
     (Parser pa) >>= f = Parser $ \bs -> 
         case pa bs of 
-            Just (bs', b) -> case f b of 
+            Right (bs', b) -> case f b of 
                 -- f b returns a Parser 
                 Parser pb -> pb bs' 
-            _ -> Nothing 
+            Left s -> Left s
 
 fromStringtoDigit :: String -> [Either Sym Char] 
 fromStringtoDigit = map helper
@@ -158,7 +156,7 @@ parseSymInt :: Parser (Either Sym Int) NumExpr
 parseSymInt = do
     many $ do 
         x <- single 
-        if isOpen x then empty 
+        if isOpen x then empty' $ "expected (, got " ++ show x
                     else return x 
     return undefined 
 
@@ -172,6 +170,33 @@ numExpr expression@(Expr left op right) =
 
 -- parseOpenClose is to be called when Parse SymInt hits an open parent 
 -- in other words, the char before the x should be a Left Parent Open. 
+
+
+sepBy :: Parser b a -> Parser b sep -> Parser b [a]
+sepBy item sep = do
+    i <- item
+    is <- many $ do
+        sep
+        item
+    return (i : is)
+
+parseNumExpr' :: (NumExpr -> NumExpr) -> Parser (Either Sym Int) NumExpr
+parseNumExpr' cont = fmap cont openClose <|> do
+    x <- fmap cont parseNum
+    mulExpr x <|> plusExpr x <|> return x
+  where openClose = do 
+            parseOpen 
+            x <- parseNumExpr
+            parseClose 
+            return x 
+        plusExpr x = 
+            do parseAdd
+               fmap (Expr x Add) $ parseNumExpr
+        mulExpr x =
+            do parseMul
+               parseNumExpr' (Expr x Mul)
+
+parseNumExpr = parseNumExpr' id
 
 parseOpenClose :: Parser (Either Sym Int) NumExpr 
 parseOpenClose = openclose <|> fmap f sum <|> parseNum 
@@ -199,4 +224,9 @@ parseOpenClose = openclose <|> fmap f sum <|> parseNum
                   prod :: [NumExpr] -> NumExpr 
                   prod = foldr1 (\x y -> Expr x Mul y) 
 
-fromStringtoInt = fmap numExpr . parseComplete parseOpenClose . toSymInt . toSymList . fromStringtoDigit   
+fromStringToInt = fmap numExpr . parseComplete parseOpenClose . toSymInt . toSymList . fromStringtoDigit   
+fromStringToInt' = parseComplete parseNumExpr . toSymInt . toSymList . fromStringtoDigit   
+
+
+main = do
+    print $ fromStringToInt' "3*(4+1)"
