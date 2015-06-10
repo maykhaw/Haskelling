@@ -1,48 +1,39 @@
 import ParentAddMul 
 
-cExpr :: Parser (Either Sym Int) NumExpr 
-cExpr = do
-    x <- single 
-    case x of 
-        Left (Parent Open) -> 
-            let returns = do cClose in 
-            case returns of 
+cExpr :: [Either Sym Int] -> Maybe NumExpr  
+cExpr [] = Nothing 
+cExpr (a : as) =
+    case a of 
+        Right numa ->
+            case as of 
+                [] -> Just $ Num numa 
+                (b : bs) -> case b of 
+                    Right numb -> Nothing 
+                    Left (Op op) -> 
+                    Left (Parent Open) -> case bs of 
+                        [] -> Nothing 
+                        (c : cs) -> case c of 
+                            Left (Op op) -> 
+                    Left (Parent Close) -> Nothing 
+        
+    
                 
 
 
 
-cClose :: Parser (Either Sym Int) (Either NumExpr  
-cClose = do
-    x <- single 
-    case x of 
-        Right Num y -> do
-            z <- single 
-            case z of 
-                Left (Parent Open) -> do cClose  
-                Left (Parent Close) -> return $ Num y 
-                Left (Op zop) -> return $ Expr (Num y) zop  
-        Left (Parent Open) -> do cClose 
-        Left (Parent Close) -> return empty 
-        Left (Op Add) -> 
-        Left (Op Mul) -> 
-
 opNothing :: NumExpr -> Op -> Maybe NumExpr -> Maybe NumExpr 
 opNothing x y Nothing = Nothing 
-opNothing x y (Just z) = Expr x y z 
+opNothing x y (Just z) = Just $ Expr x y z 
 
-mcClose :: [Either Sym Int] -> Maybe NumExpr 
+-- mcClose gets the string after a Parent Open 
+mcClose :: [Either Sym Int] -> Maybe (NumExpr, [Either Sym Int]) 
 mcClose [] = Nothing 
-mcClose (x : xs) = 
-    case x of 
-        Right y -> case xs of 
-            [] -> Just $ Num y 
-            (z : zs) -> 
-                case z of 
-                    Left (Op zop) -> opNothing y zop (mcClose zs) 
-                    Right zint -> Nothing 
-                    Left (Parent Close) -> Just $ Num y 
-                    Left (Parent Open) -> case zs of 
-                        [] -> Nothing 
-                        (a : as) -> case a of 
-                           Left (Op aop) -> opNothing y aop (mcClose as) 
-
+mcClose (a : as) = 
+    case a of 
+        Right numa -> case as of 
+            [] -> Just (Num y, [])  
+            (b : bs) -> case b of 
+                Right numb -> Nothing 
+                Left (Op bop) -> opNothing (Num numa) bop (mcClose 
+                -- how to recurse on mcClose and still return a Maybe (NumExpr, [Either Sym Int]) 
+                -- FMAP is the answer 
