@@ -2,21 +2,25 @@ import ParentAddMul
 
 cExpr :: [Either Sym Int] -> Maybe NumExpr  
 cExpr [] = Nothing 
-cExpr (a : as) =
-    case a of 
-        Right numa ->
-            case as of 
-                [] -> Just $ Num numa 
-                (b : bs) -> case b of 
-                    Right numb -> Nothing 
-                    Left (Op op) -> 
-                    Left (Parent Open) -> case bs of 
-                        [] -> Nothing 
-                        (c : cs) -> case c of 
-                            Left (Op op) -> 
-                    Left (Parent Close) -> Nothing 
-        
-    
+cExpr [a] = case a of 
+    Right num -> Just $ Num num 
+    _ -> Nothing 
+cExpr (_, _) = Nothing 
+cExpr (Right a, Left (Op op), Right b) = Just $ Expr (Num a) op (Num b) 
+cExpr (Left (Parent Open), Right a, Left (Parent Close)) = Just $ Num a 
+cExpr (_, _, _) = Nothing 
+cExpr (a : as) = case a of 
+    Right numa -> case as of 
+        (Right numb, _) -> Nothing 
+        (Left (Op Add), bs) -> opNothing (Num numa) Add $ cExpr bs 
+        (Left (Op Mul), Right numb, bs) -> 
+            opNothing (Num numa) Mul (Num numb) $ cExpr bs 
+        (Left (Op Mul), Left (Parent Open), bs) -> 
+            opNothing (Num numa) Mul $ cExpr bs 
+        (Left (Parent Open), _) -> Nothing 
+        (Left (Parent Close), _) -> Nothing 
+    Left (Parent Open) -> 
+    _ -> Nothing 
                 
 
 
