@@ -33,26 +33,23 @@ mcHelper num op (Just (expr, list)) = Just (Expr num op expr, list)
 -- mcClose gets the list after a Parent Open 
 mcClose :: [Either Sym Int] -> Maybe (NumExpr, [Either Sym Int]) 
 mcClose [] = Nothing 
-mcClose (a : as) = 
-    case a of 
-        Right numa -> case as of 
-            [] -> Just (Num y, [])  
-            [b] -> case b of 
-                Left (Parent Close) -> Just (Num numa, []) 
-                _ -> Nothing 
-            (b : b1) -> Nothing 
-            (b : b1 : b2 : bs) -> case (b : b1 : b2) of  
-                [Right numb, _, _] -> Nothing 
-                [Left (Op Add), Right numb, Left (Parent Close)] -> 
-                    Just (Expr (Num numa) Add (Num numb), bs) 
-                [Left (Op Add), Left (Parent Open), _] -> 
-                    mcHelper (Num numa) Add $ mcClose (b2 : bs) 
-                [Left (Op Add), _, _] -> Nothing 
-                [Left (Op Mul), Right numb, Left (Parent Close)] -> 
-                    Just (Expr (Num numa) Mul (Num numb), bs)
-                [Left (Op Mul), Left (Parent Open), _] -> 
-                    mcHelper (Num numa) Mul $ mcClose (b2 : bs) 
-                [Left (Op Mul), _, _] -> Nothing 
-
-                    
-                [Left (Parent open), _, _] -> Nothing 
+mcClose [a] = Nothing 
+mcClose [a, b] = case (a, b) of 
+    (Num numa, Left (Parent Open)) -> Just (Num numa, [])
+    _ -> Nothing 
+mcClose (a : as) = case a of 
+    Right numa -> case as of 
+        (Right numb, _) -> Nothing 
+        (Left (Op Add) : Right numb : Left (Op Mul) : bs) -> 
+            mcHelper (Num numa) Add $ 
+        (Left (Op Add) : Right numb : Left (Parent Close) : bs) -> 
+            Just (Expr (Num numa) Add (Num numb), bs) 
+        (Left (Op Add) : Left (Parent Open) : bs) -> 
+            mcHelper (Num numa) Add $ mcClose bs 
+        (Left (Op Add) : _) -> Nothing 
+        (Left (Op Mul) : Right numb : Left (Parent Close) : bs) -> 
+            Just (Expr (Num numa) Mul (Num numb), bs) 
+        (Left (Op Mul) : Left (Parent Open) : bs) -> 
+            mcHelper (Num numa) Mul $ mcClose bs 
+    Left (Parent Open) 
+    _ -> Nothing 
