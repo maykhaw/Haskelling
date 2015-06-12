@@ -37,39 +37,22 @@ mcClose (a : as) =
     case a of 
         Right numa -> case as of 
             [] -> Just (Num y, [])  
-            (b : bs) -> case b of 
-                Right numb -> Nothing 
-                Left (Op Add) -> case bs of 
-                    [] -> Nothing 
-                    (c : cs) -> case c of 
-                        Right numc -> case cs of 
-                            [] -> Nothing  
-                            (d : ds) -> case d of
-                                let aAddc = Expr (Num numa) Add (Num numc) in 
-                                Right numd -> Nothing 
-                                Left (Op Add) -> 
-                                    mcHelper aAddc Add (mcClose ds)  
-                                Left (Op Mul) -> 
-                                    mcHelper (Num numa) Add (mcClose bs) 
-                                Left (Parent Open) -> 
-                                    mcHelper (Num numa) Add (mcClose ds)  
-                                Left (Parent Close) -> Just (aAddc, ds)  
-                        Left (Op _) -> Nothing 
-                        Left (Parent Open) -> 
-                            mcHelper (Num numa) Add (mcClose cs) 
-                        Left (Parent Close) -> case cs of 
-                            [] -> Nothing 
-                            (d : ds) -> case d of 
-                                Right numd -> mcHelper (Num numa) Add (
-                Left (Op Mul) -> 
-                Left (Parent Open) -> case bs of 
-                    [] -> Nothing 
-                    (c : cs) -> case c of 
-                        Right numc -> Nothing 
-                        Left (Op Add) -> 
-                        Left (Op Mul) -> 
-                        Left (Parent Open) -> 
-                        Left (Parent Close) ->  
-                Left (Parent Close) -> 
-                -- how to recurse on mcClose and still return a Maybe (NumExpr, [Either Sym Int]) 
-                -- FMAP is the answer 
+            [b] -> case b of 
+                Left (Parent Close) -> Just (Num numa, []) 
+                _ -> Nothing 
+            (b : b1) -> Nothing 
+            (b : b1 : b2 : bs) -> case (b : b1 : b2) of  
+                [Right numb, _, _] -> Nothing 
+                [Left (Op Add), Right numb, Left (Parent Close)] -> 
+                    Just (Expr (Num numa) Add (Num numb), bs) 
+                [Left (Op Add), Left (Parent Open), _] -> 
+                    mcHelper (Num numa) Add $ mcClose (b2 : bs) 
+                [Left (Op Add), _, _] -> Nothing 
+                [Left (Op Mul), Right numb, Left (Parent Close)] -> 
+                    Just (Expr (Num numa) Mul (Num numb), bs)
+                [Left (Op Mul), Left (Parent Open), _] -> 
+                    mcHelper (Num numa) Mul $ mcClose (b2 : bs) 
+                [Left (Op Mul), _, _] -> Nothing 
+
+                    
+                [Left (Parent open), _, _] -> Nothing 
