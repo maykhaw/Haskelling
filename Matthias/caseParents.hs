@@ -21,18 +21,27 @@ cExpr (a : as) = case a of
         (Left (Op Add) : bs) -> opNothing (Num numa) Add $ cExpr bs 
         (Left (Parent Open) : _) -> Nothing 
         (Left (Parent Close) : _) -> Nothing 
-    Left (Parent Open) -> case as of 
-        (Right numb : Left (Op bop) : bs) -> _  
-        (Right numb : Left (Parent Close) : bs) -> case bs of 
-            (Left (Op bop) : cs) -> undefined 
-                opNothing (Num numb) bop $ cExpr cs 
-            (Left (Parent Close) : cs) -> undefined 
-                -- what to do if you have (2 + (3 + 4))? 
-                -- if we did: opNothing (Num numb) bop $ cExpr cs 
-                -- does it recurse correctly? 
-                -- Will it 
-        (Left (Parent Open) : bs) -> undefined 
-            -- same as above with the Parent Close 
+    Left (Parent Open) -> case helper as of 
+        let hHelper :: NumExpr -> Op -> Maybe (Maybe NumExpr, [Either Sym Int])
+                Maybe (Maybe NumExpr, [Either Sym Int])
+            hHelper num op Nothing = Nothing
+            hHelper num op (Just (Just expr, bs)) = 
+                Just (Expr num op expr, bs) 
+            helper :: [Either Sym Int] -> 
+                Maybe (Maybe NumExpr, [Either Sym Int])
+            helper [] = Nothing 
+            helper [_] = Nothing 
+            helper (Right a : Left (Parent Close) : bs) = 
+                Just (Just $ Num a, bs)
+            helper (Right a : Left (Op Mul) : Right b : bs) = 
+                case bs of 
+                    [] 
+                hHelper (Expr (Num a) Mul (Num b)) 
+            helper (Right a : Left (Op Add) : bs) = 
+                hHelper (Num a) Add $ helper bs 
+            helper (Left (Parent Open) : bs) = Just (Nothing, bs) 
+            helper _ = Nothing in 
+        
     _ -> Nothing 
                 
 
