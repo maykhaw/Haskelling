@@ -1,3 +1,5 @@
+module ParentAddMul where 
+
 import Control.Applicative 
 import Data.Maybe 
 import Data.List
