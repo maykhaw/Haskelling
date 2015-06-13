@@ -1,3 +1,6 @@
+import Data.Maybe 
+import Test.QuickCheck 
+import Data.List 
 import ParentAddMul hiding (main)  
 
 cExpr :: [Either Sym Int] -> Maybe NumExpr  
@@ -10,34 +13,25 @@ cExpr (a : as) = case a of
         [] -> Just $ Num numa 
         [_] -> Nothing 
         (Right numb : _) -> Nothing 
-        (Left (Op Mul) : Right numb : bs) -> case bs of 
-            [] -> Just $ Expr (Num numa) Mul (Num numb) 
-            (Left (Op bop) : cs) -> 
+        (Left (Op Mul) : bs) -> case bs of 
+            [] -> Nothing 
+            (Right numb : Left (Op bop) : cs) -> 
                 opNothing (Expr (Num numa) Mul (Num numb)) bop $ cExpr cs
-            _ -> Nothing 
-        (Left (Op Mul) : Left (Parent Open) : bs) ->
-            opNothing (Num numa) Mul $ cExpr bs
-        (Left (Op Add) : bs) -> case bs of
-            [Right numb] -> Just $ Expr (Num numa) Add (Num numb) 
-            _ -> opNothing (Num numa) Add $ cExpr bs 
-        (Left (Op _) : _) -> Nothing 
-        (Left (Parent Open) : _) -> Nothing 
-        (Left (Parent Close) : _) -> Nothing 
+            (Right numb : _) -> Nothing 
+            (Left (Op _) : _) -> Nothing 
+            (Left (Parent Open) : cs) -> 
+                opNothing (Num numa) Mul $ cExpr bs 
+            (Left (Parent _) : _) -> Nothing 
+        (Left (Op Add) : bs) -> 
+            opNothing (Num numa) Add $ cExpr bs 
+        (Left (Parent _) : _) -> Nothing 
     Left (Parent Open) -> 
         let helper :: [Either Sym Int] -> Maybe (NumExpr, [Either Sym Int])
             helper [] = Nothing 
             helper [_] = Nothing 
             helper (Right a : Left (Parent Close) : bs) = Just (Num a, bs)
-            helper (Right a : Left (Op Add) : bs) = case bs of 
-                (Right b : Left (Parent Close) : cs) -> 
-                    Just (Expr (Num a) Add (Num b), cs) 
-                (Right b :  
-                    tupleNothing (Num a) Add $ helper bs 
-                (Left (Op _) : _) -> Nothing 
-                (Left (Parent Open) : cs) -> 
-                    tupleNothing (Num a) Add $ helper bs 
-                (Left (Parent Close) : cs) -> Nothing 
-                _ -> Nothing 
+            helper (Right a : Left (Op Add) : bs) = 
+                tupleNothing (Num a) Add $ helper bs 
             helper (Right a : Left (Op Mul) : Right b : bs) = 
                 case bs of 
                     [] -> Nothing 
@@ -48,6 +42,7 @@ cExpr (a : as) = case a of
                     _ -> Nothing 
             helper (Right a : Left (Op Mul) : Left (Parent Open) : bs) = 
                 tupleNothing (Num a) Mul $ helper bs 
+            helper (Right a : Left (Op Mul) : _) = Nothing  
             helper (Left (Parent Open) : bs) = case helper bs of 
                 Just (c, cs) -> case cs of 
                     [] -> Nothing 
@@ -99,6 +94,19 @@ stringtocExpr = cExpr . toSymInt . toSymList . fromStringtoDigit
 stringtocExprInt :: String -> Maybe Int 
 stringtocExprInt l = fmap numExpr $ stringtocExpr l 
 
+toMul :: [[Int]] -> [String]
+toMul l = 
+    let helper :: [Int] -> String 
+        helper [] = "0"
+        helper [x] = show x 
+        helper x = "(" ++ (intercalate "*" $ map show x) ++ ")" in  
+    map helper l 
 
+toAddMul :: [String] -> String 
+toAddMul = intercalate "+" 
 
-
+prop_gencase :: [[Int]] -> Property  
+prop_gencase l = 
+    let newl = map (map abs) l 
+        val = sum $ map product newl in 
+    val === (fromJust $ stringtocExprInt (toAddMul $ toMul newl))
