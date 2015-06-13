@@ -149,7 +149,8 @@ toSymList = groupBy eitherSymInt
 toSymInt :: [[Either Sym Char]] -> [Either Sym Int]  
 toSymInt = 
     let helper :: [Either Sym Char] -> Either Sym Int 
-        helper [Left x] = Left x 
+        helper [] = error "never happens" 
+        helper ((Left x) : _) = Left x 
         helper val@((Right _) : _) = 
             Right $ decToInt $ map digitToInt $ rights val in 
     map helper 
