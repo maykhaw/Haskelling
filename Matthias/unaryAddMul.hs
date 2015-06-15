@@ -14,10 +14,16 @@ data Sym = Op Op
          | Parent Parent 
     deriving (Eq, Ord, Show) 
 
-data Op = MD Mul 
-        | AS Add 
-        | AS Sub 
-        | MD Div 
+data Op = Ad Ad 
+        | Md Md 
+    deriving (Eq, Ord, Show) 
+
+data Ad = Add 
+        | Sub 
+    deriving (Eq, Ord, Show) 
+
+data Md = Mul 
+        | Div 
     deriving (Eq, Ord, Show) 
 
 data Parent = Open 
@@ -52,19 +58,22 @@ testHelpDigit l =
 
 toEitherInt :: String -> [Either Sym Unary] 
 toEitherInt [] = []  
-toEitherInt alla@(a : x : as) = case a of 
+toEitherInt alla@(a : as) = case a of 
     '-' -> case as of 
-        [] -> [Left $ Op AS Sub] 
+        [] -> [Left $ Op $ Ad Sub] 
         allb@(b : bs) -> case isDigit b of 
             True -> let (numb, rest) = helperDigit allb in 
                 (Right $ Neg numb) : toEitherInt bs 
-            False -> (Left $ Op Sub) : toEitherInt bs 
-    '(' ->
-        (Left $ Parent Open) : toEitherInt as 
+            False -> (Left $ Op $ Ad Sub) : toEitherInt bs 
+    '(' -> case as of 
+        [] -> [Left $ Parent Open] 
+        ('-' : x : bs) -> case isDigit x of 
+            True -> let (numb, rest) = helperDigit (x : bs) in 
+                (Left $ Parent Open) : (Right $ Neg numb) : toEitherInt rest 
     ')' -> (Left $ Parent Close) : toEitherInt as 
-    '*' -> (Left $ Op Mul) : toEitherInt as 
-    '+' -> (Left $ Op Add) : toEitherInt as 
-    '/' -> (Left $ Op Div) : toEitherInt as 
+    '*' -> (Left $ Op $ Md $ Mul) : toEitherInt as 
+    '+' -> (Left $ Op $ Ad $ Add) : toEitherInt as 
+    '/' -> (Left $ Op $ Md $ Div) : toEitherInt as 
     _ -> if isDigit a then (Right $ Pos numa) : toEitherInt rest 
                       else error $ "not operator/Int: " ++ show a
     where (numa, rest) = helperDigit alla 
