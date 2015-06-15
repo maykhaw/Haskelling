@@ -31,12 +31,13 @@ data Parent = Open
     deriving (Eq, Ord, Show) 
 
 
-isLeftNoSub :: Char -> Bool 
-isLeftNoSub '+' = True 
-isLeftNoSub '*' = True 
-isLeftNoSub '(' = True 
-isLeftNoSub ')' = True 
-isLeftNoSub _ = False 
+isOpLeft :: Char -> Bool 
+isOpLeft '+' = True 
+isOpLeft '*' = True 
+isOpLeft '(' = True 
+isOpLeft ')' = True 
+isOpLeft '-' = True 
+isOpLeft _ = False 
 
 isSub :: Char -> Bool 
 isSub '-' = True 
@@ -56,28 +57,62 @@ testHelpDigit l =
     (fst (helperDigit (concatMap show l'))) === (foldl (\a b -> 10 * a + b) 0 l')
 
 
+toNeg :: (Int, String) -> (Unary, String) 
+toNeg (x, y) = (Neg x, y) 
+
+toPos :: (Int, String) -> (Unary, String)
+toPos (x, y) = (Pos x, y) 
+
+toUnary :: String -> Maybe (Unary, String) 
+toUnary [] = Nothing 
+toUnary [x] = if isDigit x then Just (Pos $ digitToInt x, [])
+                           else Nothing 
+toUnary list@(x : y : xs) = case (x, isDigit y) of 
+    ('-', True) -> Just $ toNeg $ helperDigit (y : xs)
+    ('+', True) -> Just $ toPos $ helperDigit (y : xs) 
+    _ -> if isDigit x then Just $ toPos $ helperDigit list
+                      else Nothing 
+
+isUnary :: String -> Bool
+isUnary [] = False 
+isUnary [_] = False 
+isUnary [_, _] = False 
+isUnary (a : b : c : xs) = 
+    case (isOpLeft a, isOpLeft b, isDigit c) of 
+        (True, True, True) -> case b of 
+            '+' -> True
+            '-' -> True 
+            _ -> False 
+        _ -> False 
+
+mapChar :: Char -> Either Sym Unary 
+mapChar '(' = Left $ Parent Open 
+mapChar ')' = Left $ Parent Close 
+mapChar '+' = Left $ Op $ Ad Add 
+mapChar '-' = Left $ Op $ Ad Sub 
+mapChar '*' = Left $ Op $ Md Mul 
+mapChar '/' = Left $ Op $ Md Div 
+mapChar x = error $ "mapChar should never be given anything that is not an approved operator: " ++ show x 
+
 toEitherInt :: String -> [Either Sym Unary] 
 toEitherInt [] = []  
-toEitherInt alla@(a : as) = case a of 
-    '-' -> case as of 
-        [] -> [Left $ Op $ Ad Sub] 
-        allb@(b : bs) -> case isDigit b of 
-            True -> let (numb, rest) = helperDigit allb in 
-                (Right $ Neg numb) : toEitherInt bs 
-            False -> (Left $ Op $ Ad Sub) : toEitherInt bs 
-    '(' -> case as of 
-        [] -> [Left $ Parent Open] 
-        ('-' : x : bs) -> case isDigit x of 
-            True -> let (numb, rest) = helperDigit (x : bs) in 
-                (Left $ Parent Open) : (Right $ Neg numb) : toEitherInt rest 
-    ')' -> (Left $ Parent Close) : toEitherInt as 
-    '*' -> (Left $ Op $ Md $ Mul) : toEitherInt as 
-    '+' -> (Left $ Op $ Ad $ Add) : toEitherInt as 
-    '/' -> (Left $ Op $ Md $ Div) : toEitherInt as 
-    _ -> if isDigit a then (Right $ Pos numa) : toEitherInt rest 
-                      else error $ "not operator/Int: " ++ show a
-    where (numa, rest) = helperDigit alla 
-
+toEitherInt alla = 
+    let helper :: String -> [Either Sym Unary] 
+        helper [] = [] 
+        helper [x] = if isDigit x then [Right $ Pos $ digitToInt x]
+                                  else [mapChar x]
+        helper list@(x : xs) = case isUnary list of 
+            True -> case list of 
+                [] -> error "cannot happen after passing isUnary" 
+                [_] -> error "cannot happen after passing isUnary" 
+                (a : bs) -> let Just (numb, rest) = toUnary bs in 
+                    mapChar a : Right numb : helper rest 
+            False -> let Just (numb, rest) = toUnary list in 
+                if isDigit x then Right numb : helper rest 
+                             else mapChar x : helper xs in 
+    case toUnary alla of 
+        Just (a, rest) -> (Right a) : helper rest 
+        Nothing -> helper alla 
 
 toNumExpr :: [Either Sym Unary] -> Maybe NumExpr 
 toNumExpr [] = Nothing 
