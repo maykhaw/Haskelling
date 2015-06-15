@@ -105,8 +105,10 @@ toMul l =
 toAddMul :: [String] -> String 
 toAddMul = intercalate "+" 
 
-prop_gencase :: [[Int]] -> Property  
-prop_gencase l = 
-    let newl = map (map abs) l 
-        val = sum $ map product newl in 
-    val === (fromJust $ stringtocExprInt (toAddMul $ toMul newl))
+
+prop_gencase :: NonEmptyList (NonEmptyList Int) -> Property  
+prop_gencase l' = 
+    let l = fmap (getNonEmpty) $ getNonEmpty l' 
+        newl = map (map abs) l 
+        val = Just $ sum $ map product newl in 
+    val === (stringtocExprInt (toAddMul $ toMul newl))
