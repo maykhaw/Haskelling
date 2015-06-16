@@ -2,7 +2,7 @@ import Data.Either
 import Test.QuickCheck 
 import Data.Char 
 
-data NumExpr = Num Unary 
+data NumExpr = Unary Unary 
              | Expr NumExpr Op NumExpr 
     deriving (Eq, Ord, Show) 
 
@@ -114,13 +114,22 @@ toEitherInt alla =
         Just (a, rest) -> (Right a) : helper rest 
         Nothing -> helper alla 
 
+adCancelling :: (Either Sym Unary, [Either Sym Unary]) -> 
+    (Either Sym Unary, [Either Sym Unary])
+adCancelling ((Left (Op (Ad Add))), ((Left (Op (Ad Sub))) : (Left (Op (Ad Add))) : bs)) = 
+    adCancelling ((Left (Op (Ad Add))), bs)
+adCancelling ((Left (Op (Ad Sub))), ((Left (Op (Ad Add))) : (Left $ Op $ Add Sub) : bs)) =
+    adCancelling ((Left (Op (Ad Sub))), bs)
+adCancelling anything = anything 
+
 toNumExpr :: [Either Sym Unary] -> Maybe NumExpr 
 toNumExpr [] = Nothing 
-toNumExpr [Right x] = Just $ Num x 
 toNumExpr (a : as) = case a of 
-    Right una -> case as of 
-        [] -> Just $ Num una 
-        (Left (Op bop) : Right unb : bs) -> undefined 
-    Left (Parent Open) -> undefined 
-    Left _ -> Nothing 
+    Right b -> case as of 
+        [] -> Just $ Unary $ b 
+        (Left (Parent Open) : bs) -> helperParent as 
+        (Left $ Ad bop : bs) 
+    Left (Parent Open) -> 
+    _ -> Nothing 
+
     
