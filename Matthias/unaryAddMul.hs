@@ -43,6 +43,31 @@ isSub :: Char -> Bool
 isSub '-' = True 
 isSub _ = False 
 
+isOp :: Either Sym Unary -> Bool 
+isOp add = True
+isOp mul = True
+isOp div = True
+isOp sub = True 
+isOp _ = False 
+
+isAd :: Either Sym Unary -> Bool 
+isAd add = True
+isAd sub = True 
+isAd _ = False 
+
+add = Left $ Op $ Ad $ Add 
+sub = Left $ Op $ Ad $ Sub 
+mul = Left $ Op $ Md $ Mul 
+div = Left $ Op $ Md $ Div 
+open = Left $ Parent Open 
+close = Left $ Parent Close 
+
+toOp :: Either Sym Unary -> Op
+toOp add = Ad Add 
+toOp Sub = Ad Sub 
+toOp mul = Md Mul 
+toOp div = Md Div 
+
 helperDigit :: String -> (Int, String) 
 helperDigit list = 
     let help :: (Int, String) -> (Int, String)
@@ -116,20 +141,38 @@ toEitherInt alla =
 
 adCancelling :: (Either Sym Unary, [Either Sym Unary]) -> 
     (Either Sym Unary, [Either Sym Unary])
-adCancelling ((Left (Op (Ad Add))), ((Left (Op (Ad Sub))) : (Left (Op (Ad Add))) : bs)) = 
-    adCancelling ((Left (Op (Ad Add))), bs)
-adCancelling ((Left (Op (Ad Sub))), ((Left (Op (Ad Add))) : (Left $ Op $ Add Sub) : bs)) =
-    adCancelling ((Left (Op (Ad Sub))), bs)
+adCancelling (sub, (sub : rest)) = adCancelling (add, rest) 
+adCancelling (sub, (add : sub : rest)) = adCancelling (sub, rest) 
+adCancelling (add, (sub : add : rest)) = adCancelling (add, rest) 
 adCancelling anything = anything 
+
 
 toNumExpr :: [Either Sym Unary] -> Maybe NumExpr 
 toNumExpr [] = Nothing 
 toNumExpr (a : as) = case a of 
     Right b -> case as of 
         [] -> Just $ Unary $ b 
-        (Left (Parent Open) : bs) -> helperParent as 
-        (Left $ Ad bop : bs) 
-    Left (Parent Open) -> 
-    _ -> Nothing 
 
-    
+helperParent :: [Either Sym Unary] -> 
+    Maybe (NumExpr, [Either Sym Unary])
+helperParent [] = Nothing 
+helperParent [_] = Nothing 
+helperParent (Right a : b : as) = if isAd b 
+    then let (op, rest) = adCancelling (sub, as) in
+        fmap (Expr (Unary a) (toOp op)) $ helperParent as 
+    else case b of
+        Right c -> Nothing  
+        open -> Nothing 
+        close -> Just (Unary a, as) 
+        _ -> case as of 
+        i   [] -> Nothing 
+        (Right c : d : cs) -> 
+            if isAd d then fmap (Expr (Expr (Unary a) (toOp b) (Unary c)) toOp d) $ helperParent cs 
+                      else fmap (Expr (Expr (Unary a) 
+        (open : cs) -> fmap 
+
+helperParent (open : as) = case helperParent as of 
+    Just (bexpr, rest) -> case rest of 
+        (close : bs) -> Just (bexpr, bs) 
+        _ -> Nothing 
+    Nothing -> Nothing 
