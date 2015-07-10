@@ -58,7 +58,7 @@ mcClose (a : as) =
                         Left (Parent Open) -> 
                             mcHelper (Num numa) Add (mcClose cs) 
                         Left (Parent Close) -> Nothing  
-                Left (Op Mul) -> 
+                Left (Op Mul) ->  
                 Left (Parent Open) -> case bs of 
                     [] -> Nothing 
                     (c : cs) -> case c of 
