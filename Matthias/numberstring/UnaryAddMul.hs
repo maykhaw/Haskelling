@@ -1,3 +1,5 @@
+module UnaryAddMul where 
+
 import Data.Either 
 import Test.QuickCheck 
 import Data.Char 
