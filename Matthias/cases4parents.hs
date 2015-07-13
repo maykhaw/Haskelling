@@ -62,6 +62,14 @@ mcClose (a : as) =
                     [] -> Nothing 
                     (c : cs) -> case c of 
                         Right numc -> let aMulc = Expr (Num numa) Mul (Num numc) in 
+                            case cs of 
+                                [] -> Nothing 
+                                (d : ds) -> case d of 
+                                    Right numd -> Nothing 
+                                    Left (Op dop) -> mcHelper aMulc dop $ mcClose ds 
+                                    Left (Parent Close) -> Just (aMulc, ds) 
+                                    Left (Parent Open) -> 
+
                 Left (Parent Open) -> case mcClose bs of 
                     Just (bexpr, cs) ->  
                     Nothing -> Nothing 
