@@ -155,7 +155,7 @@ toNumExpr (a : as) = case a of
     Right b -> case as of 
         [] -> Just $ Unary $ b 
 
-helperParent :: [Either Sym Unary] -> 
+{-# helperParent :: [Either Sym Unary] -> 
     Maybe (NumExpr, [Either Sym Unary])
 helperParent [] = Nothing 
 helperParent [_] = Nothing 
@@ -167,14 +167,13 @@ helperParent (Right a : b : as) = if isAd b
         open -> Nothing 
         close -> Just (Unary a, as) 
         _ -> case as of 
-        i   [] -> Nothing 
+        [] -> Nothing 
         (Right c : d : cs) -> 
             if isAd d then fmap (Expr (Expr (Unary a) (toOp b) (Unary c)) toOp d) $ helperParent cs 
                       else fmap (Expr (Expr (Unary a) 
         (open : cs) -> fmap 
-
 helperParent (open : as) = case helperParent as of 
     Just (bexpr, rest) -> case rest of 
         (close : bs) -> Just (bexpr, bs) 
         _ -> Nothing 
-    Nothing -> Nothing 
+    Nothing -> Nothing #-}
