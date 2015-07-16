@@ -37,14 +37,14 @@ fstExpr [] = Left "empty list"
 fstExpr [Right num] = Right ([], Unary num)
 fstExpr [x] = Left "singleton that is not Unary/NumExpr"  
 fstExpr (Right a : (Left $ Op $ Ad ad) : Right b : rest) = 
-    Left (Expr (Unary a) (Ad ad) (Unary b), rest) 
+    Right (rest, Expr (Unary a) (Ad ad) (Unary b)) 
 fstExpr (Right a : (Left $ Op $ Md md) : Right b : rest) = 
-    Left $ helpMd (Expr (Unary a) (Md md) (Unary b), rest)        
+    Right $ helpMd (Expr (Unary a) (Md md) (Unary b), rest)        
 fstExpr list@((Left $ Parent Open) : rest) =
     case closeExpr rest of 
-        left@(Left (expr, rem)) -> left 
-        Right rem -> Right list 
-fstExpr x = Right x 
+        right@(Right (rem, expr)) -> right  
+        Left str -> Left "failed closeExpr"  
+fstExpr x = Left "fails from first token"  
 
 -- closeExpr gets the list AFTER an open parent 
 -- in the Left case, the [Either Sym Unary] is AFTER the close parent
