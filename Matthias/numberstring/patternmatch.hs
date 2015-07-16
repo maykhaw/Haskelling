@@ -30,34 +30,27 @@ data Parent = Open
             | Close 
     deriving (Eq, Ord, Show) 
 
+-- fstExpr generates the first expression, and then passes it on as an argument 
 fstExpr :: [Either Sym Unary] 
-    -> Either (NumExpr, [Either Sym Unary]) [Either Sym Unary]
-fstExpr [] = Right [] 
-fstExpr [Right num] = Left (Unary num, []) 
-fstExpr [x] = Right [x]
+    -> Either String ([Either Sym Unary], NumExpr)  
+fstExpr [] = Left "empty list" 
+fstExpr [Right num] = Right ([], Unary num)
+fstExpr [x] = Left "singleton that is not Unary/NumExpr"  
 fstExpr (Right a : (Left $ Op $ Ad ad) : Right b : rest) = 
     Left (Expr (Unary a) (Ad ad) (Unary b), rest) 
 fstExpr (Right a : (Left $ Op $ Md md) : Right b : rest) = 
     Left $ helpMd (Expr (Unary a) (Md md) (Unary b), rest)        
-fstExpr ((Left $ Parent Open) : rest) = undefined 
+fstExpr list@((Left $ Parent Open) : rest) =
+    case closeExpr rest of 
+        left@(Left (expr, rem)) -> left 
+        Right rem -> Right list 
+fstExpr x = Right x 
 
 -- closeExpr gets the list AFTER an open parent 
 -- in the Left case, the [Either Sym Unary] is AFTER the close parent
--- in the Right case, it returns the original string it received plus an open parent in front 
-closeExpr :: [Either Sym Unary]
+closeExpr :: [Either (NumExpr, [Either Sym Unary]) [Either Sym Unary]
     -> Either (NumExpr, [Either Sym Unary]) [Either Sym Unary]
-closeExpr [] = Right []
-closeExpr (Right num : (Left $ Parent Close) : rest) = 
-    Left (Unary num, rest) 
-closeExpr list@(Right num : (Left $ Op op) : rest) = 
-    let (expr, rem) = fstExpr list in 
-    case helpExpr expr rem of 
-        Left (newexpr, newrem) -> case newrem of 
-            [] -> Right [] 
-            ((Left $ Parent Close) : morem)) -> Left (newexpr, morem) 
-            
-
-        Right 
+closeExpr (Right x) = Right x 
 
 -- helpMd strings together a series of Mul / Div  
 -- the NumExpr given must contain a Mul / Div at the top level  
