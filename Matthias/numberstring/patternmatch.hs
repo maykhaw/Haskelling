@@ -52,6 +52,16 @@ closeExpr :: [Either Sym Unary] -> Either String ([Either Sym Unary], NumExpr)
 closeExpr [] = Left "empty list for closeExpr"
 closeExpr [_] = Left "singleton case for closeExpr"
 closeExpr xs = case fstExpr xs of 
+    Left str -> Left "failed fstExpr: " ++ str 
+    Right (ys, expr) -> case ys of 
+        ((Left $ Parent Close) : rest) -> Right (rest, expr) 
+
+readExpr :: Either String ([Either Sym Unary], NumExpr)
+    -> Either String ([Either Sym Unary], NumExpr)
+readExpr (Left str) = Left "failed: " ++ str 
+readExpr fin@(Right (xs, expr)) = case xs of 
+    [] -> fin 
+    [_] -> 
 
 
 -- helpMd strings together a series of Mul / Div  
