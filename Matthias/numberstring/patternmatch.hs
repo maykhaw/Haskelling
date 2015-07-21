@@ -43,19 +43,21 @@ fstExpr (Right a : (Left $ Op $ Md md) : Right b : rest) =
 fstExpr list@((Left $ Parent Open) : rest) =
     case closeExpr rest of 
         right@(Right (rem, expr)) -> right  
-        Left str -> Left "failed closeExpr"  
+        Left str -> Left "failed closeExpr: " ++ str 
 fstExpr x = Left "fails from first token"  
 
 -- closeExpr gets the list AFTER an open parent 
 -- in the Left case, the [Either Sym Unary] is AFTER the close parent
-closeExpr :: [Either (NumExpr, [Either Sym Unary]) [Either Sym Unary]
-    -> Either (NumExpr, [Either Sym Unary]) [Either Sym Unary]
-closeExpr (Right x) = Right x 
+closeExpr :: [Either Sym Unary] -> Either String ([Either Sym Unary], NumExpr)
+closeExpr [] = Left "empty list for closeExpr"
+closeExpr [_] = Left "singleton case for closeExpr"
+closeExpr xs = case fstExpr xs of 
+
 
 -- helpMd strings together a series of Mul / Div  
 -- the NumExpr given must contain a Mul / Div at the top level  
-helpMd :: (NumExpr, [Either Sym Unary]) -> (NumExpr, [Either Sym Unary])
-helpMd (expr, ((Left $ Op $ Md md) : Right num : rest)) = 
+helpMd :: ([Either Sym Unary], NumExpr) -> ([Either Sym Unary], NumExpr)
+helpMd (((Left $ Op $ Md md) : Right num : rest), expr) = 
     helpMd (Expr expr (Md md) (Unary num), rest) 
 helpMd anything@(_, _) = anything 
 
