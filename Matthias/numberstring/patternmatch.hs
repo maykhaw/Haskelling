@@ -36,11 +36,11 @@ fstExpr :: [Either Sym Unary]
 fstExpr [] = Left "empty list" 
 fstExpr [Right num] = Right ([], Unary num)
 fstExpr [x] = Left "singleton that is not Unary/NumExpr"  
-fstExpr (Right a : (Left $ Op $ Ad ad) : Right b : rest) = 
+fstExpr (Right a : (Left (Op (Ad ad))) : Right b : rest) = 
     Right (rest, Expr (Unary a) (Ad ad) (Unary b)) 
-fstExpr (Right a : (Left $ Op $ Md md) : Right b : rest) = 
+fstExpr (Right a : (Left (Op (Md md))) : Right b : rest) = 
     Right $ helpMd (Expr (Unary a) (Md md) (Unary b), rest)        
-fstExpr list@((Left $ Parent Open) : rest) =
+fstExpr list@((Left (Parent Open)) : rest) =
     case closeExpr rest of 
         right@(Right (rem, expr)) -> right  
         Left str -> Left "failed closeExpr: " ++ str 
@@ -54,21 +54,21 @@ closeExpr [_] = Left "singleton case for closeExpr"
 closeExpr xs = case fstExpr xs of 
     Left str -> Left "failed fstExpr: " ++ str 
     Right (ys, expr) -> case ys of 
-        ((Left $ Parent Close) : rest) -> Right (rest, expr) 
+        ((Left (Parent Close)) : rest) -> Right (rest, expr) 
 
 readExpr :: Either String ([Either Sym Unary], NumExpr)
     -> Either String ([Either Sym Unary], NumExpr)
 readExpr (Left str) = Left "failed: " ++ str 
-readExpr fin@(Right (xs, expr)) = case xs of 
-    [] -> fin 
-    [_] -> 
-
+readExpr fin@(Right ([], expr)) = fin 
+readExpr (Right ([_], expr)) = Left "extra character at the end" 
+readExpr (Right (((Left (Op (Ad ad)))) : Right num : rest), expr) = 
+    Right (rest, Expr expr (Op ad) (Unary num)) 
 
 -- helpMd strings together a series of Mul / Div  
 -- the NumExpr given must contain a Mul / Div at the top level  
 helpMd :: ([Either Sym Unary], NumExpr) -> ([Either Sym Unary], NumExpr)
-helpMd (((Left $ Op $ Md md) : Right num : rest), expr) = 
-    helpMd (Expr expr (Md md) (Unary num), rest) 
+helpMd ((((Left (Op (Md md)))) : Right num : rest), expr) = 
+    helpMd (rest, Expr expr (Md md) (Unary num)) 
 helpMd anything@(_, _) = anything 
 
 
@@ -76,7 +76,7 @@ helpMd anything@(_, _) = anything
 helpExpr :: NumExpr -> [Either Sym Unary] 
     -> Either (NumExpr, [Either Sym Unary]) [Either Sym Unary]
 helpExpr expr [] = Left (expr, [])
-helpExpr expr all@((Left $ Parent Open) : _) = Right all 
-helpExpr expr ((Left $ Op $ Ad ad) : Right a : rest) = 
+helpExpr expr all@((Left (Parent Open)) : _) = Right all 
+helpExpr expr ((Left (Op (Ad ad))) : Right a : rest) = 
     Left (Expr expr (Ad ad) (Unary a), rest) 
 
