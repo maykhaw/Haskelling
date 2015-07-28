@@ -73,10 +73,15 @@ readExpr (Right (((Left (Op (Ad ad)))) : Right num : rest), expr) =
 -- helpMd strings together a series of Mul / Div  
 helpMd :: ([Either Sym Unary], NumExpr) 
     -> Either String ([Either Sym Unary, NumExpr)
+helpMd empty@([], expr) = Right empty 
 helpMd 
+-- how do I know what the expr looks like? it depends on the 'angle' at which you look at it, right? 
 
 
 helpExpr :: NumExpr -> [Either Sym Unary] 
+helpMd ((x : y : xs), Expr expr op (Unary a)) = 
+    if isMd x then if isUnary y then Right (xs, Expr expr op (Expr (Unary a) x (Unary y)))
+                                else 
     -> Either (NumExpr, [Either Sym Unary]) [Either Sym Unary]
 helpExpr expr [] = Left (expr, [])
 helpExpr expr all@((Left (Parent Open)) : _) = Right all 
