@@ -26,6 +26,10 @@ data Md = Mul
         | Div 
     deriving (Eq, Ord, Show) 
 
+isMd :: [Either Sym Unary] -> Bool 
+isMd (Left (Op (Md _)) = True
+isMd _ = False 
+
 data Parent = Open 
             | Close 
     deriving (Eq, Ord, Show) 
@@ -36,8 +40,10 @@ fstExpr :: [Either Sym Unary]
 fstExpr [] = Left "empty list" 
 fstExpr [Right num] = Right ([], Unary num)
 fstExpr [x] = Left "singleton that is not Unary/NumExpr"  
-fstExpr (Right a : (Left (Op (Ad ad))) : Right b : rest) = 
-    Right (rest, Expr (Unary a) (Ad ad) (Unary b)) 
+fstExpr (Right a : (Left (Op (Ad ad))) : Right b : rest) = case rest of 
+    let expr = Expr (Unary a) (Ad ad) (Unary b) in 
+    [] -> Right (expr, []) 
+    (c : cs) -> if isMd c then 
 fstExpr (Right a : (Left (Op (Md md))) : Right b : rest) = 
     Right $ helpMd (Expr (Unary a) (Md md) (Unary b), rest)        
 fstExpr list@((Left (Parent Open)) : rest) =
@@ -66,15 +72,17 @@ readExpr (Right (((Left (Op (Ad ad)))) : Right num : rest), expr) =
 readExpr (Right (
 
 -- helpMd strings together a series of Mul / Div  
--- the NumExpr given must contain a Mul / Div at the top level  
-helpMd :: ([Either Sym Unary], NumExpr) -> ([Either Sym Unary], NumExpr)
-helpMd ((((Left (Op (Md md)))) : Right num : rest), expr) = 
-    helpMd (rest, Expr expr (Md md) (Unary num)) 
-helpMd anything@(_, _) = anything 
-
+helpMd :: ([Either Sym Unary], NumExpr) 
+    -> Either String ([Either Sym Unary, NumExpr)
+helpMd empty@([], expr) = Right empty 
+helpMd 
+-- how do I know what the expr looks like? it depends on the 'angle' at which you look at it, right? 
 
 
 helpExpr :: NumExpr -> [Either Sym Unary] 
+helpMd ((x : y : xs), Expr expr op (Unary a)) = 
+    if isMd x then if isUnary y then Right (xs, Expr expr op (Expr (Unary a) x (Unary y)))
+                                else 
     -> Either (NumExpr, [Either Sym Unary]) [Either Sym Unary]
 helpExpr expr [] = Left (expr, [])
 helpExpr expr all@((Left (Parent Open)) : _) = Right all 
