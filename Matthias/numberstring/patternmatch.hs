@@ -63,6 +63,7 @@ readExpr fin@(Right ([], expr)) = fin
 readExpr (Right ([_], expr)) = Left "extra character at the end" 
 readExpr (Right (((Left (Op (Ad ad)))) : Right num : rest), expr) = 
     Right (rest, Expr expr (Op ad) (Unary num)) 
+readExpr (Right (
 
 -- helpMd strings together a series of Mul / Div  
 -- the NumExpr given must contain a Mul / Div at the top level  
