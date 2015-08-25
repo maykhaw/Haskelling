@@ -1,15 +1,41 @@
+import Test.QuickCheck
 import Text.Parsec
 import Data.Char 
 import Text.Parsec.Char 
 
 data NumExpr = Num Int 
              | Expr NumExpr Op NumExpr 
-    deriving Show 
+    deriving (Eq, Ord, Show)
 
 data Op = Mul 
         | Add 
         | Minus
-    deriving Show
+    deriving (Eq, Ord, Show)
+
+instance Arbitrary NumExpr where 
+    arbitrary = sized $ \size ->
+        if size <= 1
+           then Num . abs <$> arbitrary
+           else oneof [ Num . abs <$> arbitrary
+                      , do
+                            a <- resize (size `div` 2) arbitrary
+                            op <- arbitrary
+                            b <- resize (size `div` 2) arbitrary
+                            return (Expr a op b)
+                      ]
+    shrink (Num i) = Num <$> shrink i
+    shrink (Expr a op c) =
+        [a, c] ++
+        (Expr <$> shrink a <*> pure op <*> pure c) ++
+        (Expr <$> pure a <*> pure op <*> shrink c) ++
+        (Expr <$> pure a <*> shrink op <*> pure c) ++
+        if a > c then [Expr c op a]
+                 else []
+
+instance Arbitrary Op where
+    arbitrary = elements [Mul, Add]
+    shrink Add = []
+    shrink Mul = [Add]
 
 decToInt :: String -> NumExpr 
 decToInt = Num . foldl (\a b -> 10 * a + b) 0 . map digitToInt 
@@ -59,6 +85,14 @@ helpMinPlus x ((op, expr) : ys) = helpMinPlus (Expr x op expr) ys
 -- helpMinPlus x ((op, expr) : ys) = Expr x op $ helpMinPlus expr ys 
 -- folding in the wrong direction 
 
+helpMinPlus' :: NumExpr -> [(Op, NumExpr)] -> NumExpr 
+helpMinPlus' x l = foldl helper x l 
+    where helper :: NumExpr -> (Op, NumExpr) -> NumExpr 
+          helper expr (op, numexpr) = Expr expr op numexpr 
+
+prop_MinPlus :: NumExpr -> [(Op, NumExpr)] -> Property 
+prop_MinPlus x list = helpMinPlus x list === helpMinPlus' x list
+
 parseExpr :: Parsec String () NumExpr
 parseExpr = do 
     numList <- sepBy1 parseMulExpr parsePlus 
@@ -70,14 +104,16 @@ parseMulExpr = do
     return $ foldl1 (\a b -> Expr a Mul b) numList 
 
 
-helpersepSepBy :: Parsec a () a -> Parsec a () sep -> Parsec a () (sep, a) 
+helpersepSepBy :: Parsec a () b -> Parsec a () sep -> Parsec a () (sep, b) 
 helpersepSepBy pa pSep = do 
     x <- pSep 
     y <- pa 
     return (x,y) 
     
-sepSepBy :: Parsec a () a -> Parsec a () sep -> Parsec a () (a, [(sep, a)])
+sepSepBy :: Parsec a () b -> Parsec a () sep -> Parsec a () (b, [(sep, b)])
 sepSepBy pa pSep = do 
     firstA <- pa 
     rest <- many $ helpersepSepBy pa pSep 
     return (firstA, rest)
+
+
