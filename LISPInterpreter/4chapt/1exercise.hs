@@ -206,8 +206,8 @@ isNumber (Number _) = Bool True
 isNumber _ = Bool False
 
 isSymbol :: LispVal -> LispVal
-isSymbol = undefined
--- I think I need to do the char thing from an earlier chapter. I think this may not work without a Char thingie. 
+isSymbol (Atom _) = Bool True
+isSymbol _ = Bool False
 
 isBool :: LispVal -> LispVal
 isBool (Bool _) = Bool True

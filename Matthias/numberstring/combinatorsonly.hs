@@ -10,6 +10,7 @@ data NumExpr = Num Int
 data Op = Mul 
         | Add 
         | Minus
+        | Div
     deriving (Eq, Ord, Show)
 
 instance Arbitrary NumExpr where 
@@ -60,6 +61,11 @@ parseMul = do
     satisfy (== '*')
     return Mul
 
+parseDiv :: Parsec String () Op
+parseDiv = do
+    satisfy (== '/') 
+    return Div
+
 parseParents :: Parsec String () NumExpr 
 parseParents = do
     satisfy (== '(') 
@@ -98,6 +104,7 @@ parseExpr = do
     numList <- sepBy1 parseMulExpr parsePlus 
     return $ foldl1 (\a b -> Expr a Add b) numList 
 
+
 parseMulExpr :: Parsec String () NumExpr 
 parseMulExpr = do 
     numList <- sepBy1 (parseNum <|> parseParents) parseMul 
@@ -116,4 +123,6 @@ sepSepBy pa pSep = do
     rest <- many $ helpersepSepBy pa pSep 
     return (firstA, rest)
 
+main = do
+    x <- getArgs
 
