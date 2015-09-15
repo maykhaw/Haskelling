@@ -18,7 +18,7 @@ decToInt :: String -> NumExpr
 decToInt = Num . foldl (\a b -> 10 * a + b) 0 . map digitToInt 
 
 parseNum :: Parsec String () NumExpr 
-parseNum = do
+parseNum = try $ do
     unary <- option Add (parseMin <|> parseAdd) 
     x <- many1 digit 
     let Num y = decToInt x 
@@ -48,17 +48,34 @@ parseDiv = do
     return Div
 
 parseParents :: Parsec String () NumExpr
-parseParents = do
+parseParents = try $ do
+    unary <- option Add (parseMin <|> parseAdd) 
     satisfy (== '(')
     x <- parseExpr 
     satisfy (== ')')
-    return x 
+    return $ case unary of
+        Min -> Expr (Num 0) Min x 
+        Add -> x 
 
 
 exprGen :: (NumExpr, [(Op, NumExpr)]) -> NumExpr
-exprGen (x, ys) = foldr helper x ys
-    where helper :: (Op, NumExpr) -> NumExpr -> NumExpr
-          helper (op, num) expr = Expr expr op num 
+exprGen (x, []) = x 
+exprGen (x, (op, expr):zs) = Expr x op $ exprGen (expr, zs) 
+
+genHelp :: NumExpr -> (Op, NumExpr) -> (NumExpr -> (Op, NumExpr) -> NumExpr)
+genHelp x (op, expr) = Expr x op $ Expr expr 
+
+
+foldGen :: (NumExpr, [(Op, NumExpr)]) -> NumExpr
+foldGen (x, list) = foldr helper x list
+    where helper (op, expr) b = undefined 
+
+
+-- (x, []) = x
+-- (x, (op, expr)) = Expr x op expr 
+-- (x, (op, expr):zs)) = Expr x op $ exprGen (expr, zs)
+-- (x, (op, expr):(op', expr'):zs) = Expr x op $ Expr expr' 
+
 
 parseMd :: Parsec String () (Op, NumExpr)
 parseMd = do 
@@ -68,44 +85,67 @@ parseMd = do
 
 parseMdExpr :: Parsec String () NumExpr
 parseMdExpr = do
-    x <- parseNum
-    numList <- many1 parseMd
+    x <- parseNum <|> parseParents
+    numList <- many parseMd
     return $ exprGen (x, numList) 
 
 parseAddMin :: Parsec String () (Op, NumExpr) 
 parseAddMin = do
     op <- parseAdd <|> parseMin  
-    num <- (try parseMdExpr) <|> parseParents <|> parseNum 
+    num <- parseMdExpr 
     return (op, num)
 
 
-amGen :: (NumExpr, [(Op, NumExpr)]) -> NumExpr
-amGen (x, []) = x
-amGen (x, (y : ys)) = amGen (helper x y, ys)
-    where helper :: NumExpr -> (Op, NumExpr) -> NumExpr
-          helper x (Add, y) = Expr x Add y
-          helper x (Min, y) = Expr x Min y
-          helper x (_, y) = error "not Add / Min" 
-
 parseExpr :: Parsec String () NumExpr
 parseExpr = do
-    x <- parseParents <|> (try parseMdExpr) <|> parseNum
+    x <- parseMdExpr 
     numList <- many parseAddMin
     return $ exprGen (x, numList)
 
+foldExpr :: Parsec String () NumExpr
+foldExpr = do
+    x <- parseMdExpr 
+    numList <- many parseAddMin
+    return $ foldGen (x, numList)
+
 modNum = 10^9 + 7 
 
-numExpr :: NumExpr -> Int
-numExpr (Num x) = x
-numExpr (Expr a op b) = case (a, b) of
-    (Num x, Num y) -> case op of
-        Add -> x + y
-        Min -> x - y
-        Mul -> x * y
-        Div -> div x y  
-    _ -> numExpr (Expr (Num $ numExpr a) op (Num $ numExpr b))
+powm :: Integer -> Integer -> Integer -> Integer -> Integer
+powm b 0 m r = r
+powm b e m r | e `mod` 2 == 1 = powm (b * b `mod` m) (e `div` 2) m (r * b `mod` m)
+powm b e m r = powm (b * b `mod` m) (e `div` 2) m r
 
-stringToInt :: String -> Int 
+pow :: Integer -> Integer -> Integer -> Integer
+pow b o m = powm b o m 1
+
+numExpr :: NumExpr -> Integer
+numExpr (Num x) = toInteger x
+numExpr (Expr a op b) = (case op of
+    Add -> a' + b' 
+    Min -> a' - b' 
+    Mul -> a' * b'
+    Div -> a' * (pow b' (modNum - 2) modNum))
+    `mod` modNum 
+    where a' = numExpr a
+          b' = numExpr b
+
+
+isRightString :: Either ParseError NumExpr -> String
+isRightString x = either show toString x
+
+toString :: NumExpr -> String 
+toString (Num x) = show x
+toString (Expr a op b) = "(" ++ a' ++ (case op of
+    Add -> "+" 
+    Min -> "-" 
+    Mul -> "*" 
+    Div -> "/"  
+    ) ++ b' ++ ")" 
+    where a' = toString a
+          b' = toString b
+
+
+stringToInt :: String -> Integer
 stringToInt x = case parse parseExpr "" x of
     Right expr -> mod (numExpr expr) modNum
     Left str -> error $ show str 
@@ -113,4 +153,5 @@ stringToInt x = case parse parseExpr "" x of
 main = do
     x <- getLine 
     let newx = filter (/= ' ') x
-    putStrLn $ show $ stringToInt newx 
+    putStrLn $ isRightString $ parse parseExpr "" newx 
+    putStrLn $ isRightString $ parse foldExpr "" newx 
