@@ -7,9 +7,9 @@ alpha x = S.fromList $ List.delete x ['a'..'z']
 
 splitx :: String -> S.Set ([Char], Char, [Char])
 splitx x = let beginning = tail $ init $ List.inits x
-               middle = tail x 
+               single = tail x 
                end = tail $ tail $ List.tails x in
-           S.fromList $ zip3 beginning middle end
+           S.fromList $ zip3 beginning single end
 
 middle f (a, b, c) = (a, f b, c) 
 
