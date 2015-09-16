@@ -23,7 +23,8 @@ genPoss x =
 
 -- genKey removes 'words' that are not in the dictionary
 genKey :: S.Set String -> String -> S.Set String 
-genKey list x = S.intersection list $ genPoss x 
+genKey dict x = S.intersection dict $ genPoss x 
 
-genMap :: S.Set String -> Map.Map String (S.Set String) 
-    genMap x = Map.fromSet (genKey x) x
+
+genMap :: S.Set String -> S.Set String -> Map.Map String (S.Set String)
+genMap dict x = Map.fromSet (genKey dict) x
