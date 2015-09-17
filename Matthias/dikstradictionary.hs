@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+import Test.QuickCheck
 import qualified Data.Map.Strict as Map 
 import qualified Data.Set as S 
 import qualified Data.List as List 
@@ -21,6 +23,16 @@ genPoss :: String -> S.Set String
 genPoss x = 
     S.unions $ S.toList $ S.map substitutex $ S.map (middle alpha) $ splitx x
 
+prop_PossLength :: (NonEmptyList Char) -> Bool 
+prop_PossLength (NonEmpty l) = let ll = length l
+                                   newSet = genPoss l in
+                               null $ S.filter (\x -> ll /= length x) newSet 
+
+prop_PossElem :: (NonEmptyList Char) -> Bool 
+prop_PossElem (NonEmpty l) = let ll = List.sort l
+                                 newSet = S.map List.sort $ genPoss l in
+                             null $ S.filter (== ll) newSet
+
 -- genKey removes 'words' that are not in the dictionary
 genKey :: S.Set String -> String -> S.Set String 
 genKey dict x = S.intersection dict $ genPoss x 
@@ -28,3 +40,13 @@ genKey dict x = S.intersection dict $ genPoss x
 
 genMap :: S.Set String -> S.Set String -> Map.Map String (S.Set String)
 genMap dict x = Map.fromSet (genKey dict) x
+
+
+
+return []
+
+testAll :: IO Bool
+testAll = $quickCheckAll
+
+main :: IO Bool
+main = testAll
