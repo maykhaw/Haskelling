@@ -130,6 +130,38 @@ dijkstra mapping start end =
                                           else helper mapset newfront fin in 
     fmap reverse $ helper mapping (Map.singleton start []) end 
 
+newtype Start = Start Int
+    deriving (Eq, Ord, Show)
+
+instance Arbitrary Start where
+    arbitrary = Start <$> choose (1,100)
+
+newtype End = End Int
+    deriving (Eq, Ord, Show)
+
+instance Arbitrary End where
+    arbitrary = End <$> choose (1,100)
+
+prop_hundred :: Start -> End -> Bool
+prop_hundred (Start start) (End end) = 
+    case dijkstra hundred start end of
+        Just _ -> True
+        Nothing -> False 
+
+prop_oddeven :: Start -> End -> Bool
+prop_oddeven (Start start) (End end) = 
+    if start == end then True 
+                    else maybe False (\x -> length x <= 2) $ dijkstra hundred start end
+    
+hundred = Map.fromSet helper $ S.fromList [1..100]
+    where helper :: Int -> S.Set Int
+          helper x = S.fromList $ if even x then (x + 1) : filter even [1..100]
+                                            else (x + 1) : filter odd [1..100] 
+
+testhundred = filter (\x -> x `S.notMember` (S.unions $ Map.elems hundred)) [1..100]
+
+lessthan :: Int -> Int -> S.Set Int
+lessthan x y = S.fromList $ filter (<= x) $ map (* y) $ [3, 6..] ++ [5, 10..]  
 
 newtype Letter = Letter Char
     deriving (Eq, Ord, Show) 
@@ -209,7 +241,11 @@ updateDict :: (Int, Letter) -> [Letter] -> [Letter]
 updateDict (num, lettr) str =
     take (num - 1) str ++ [lettr] ++ drop num str 
 
-
+prop_genDict :: NonEmptyList Letter -> NonEmptyList Letter -> Bool
+prop_genDict (NonEmpty l) (NonEmpty r) = 
+    let (Dictionary dict) = genDict l r 
+        ll = length l in 
+    S.size dict <= (ll + 1)
 
 
 return []
