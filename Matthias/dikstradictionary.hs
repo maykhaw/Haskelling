@@ -144,14 +144,11 @@ instance Arbitrary End where
 
 prop_hundred :: Start -> End -> Bool
 prop_hundred (Start start) (End end) = 
-    case dijkstra hundred start end of
-        Just _ -> True
-        Nothing -> False 
+    isJust $ dijkstra hundred start end 
 
-prop_oddeven :: Start -> End -> Bool
+prop_oddeven :: Start -> End -> Property 
 prop_oddeven (Start start) (End end) = 
-    if start == end then True 
-                    else maybe False (\x -> length x <= 2) $ dijkstra hundred start end
+    start /= end ==> maybe False (\x -> length x <= 2) $ dijkstra hundred start end
     
 hundred = Map.fromSet helper $ S.fromList [1..100]
     where helper :: Int -> S.Set Int
@@ -159,9 +156,6 @@ hundred = Map.fromSet helper $ S.fromList [1..100]
                                             else (x + 1) : filter odd [1..100] 
 
 testhundred = filter (\x -> x `S.notMember` (S.unions $ Map.elems hundred)) [1..100]
-
-lessthan :: Int -> Int -> S.Set Int
-lessthan x y = S.fromList $ filter (<= x) $ map (* y) $ [3, 6..] ++ [5, 10..]  
 
 newtype Letter = Letter Char
     deriving (Eq, Ord, Show) 
