@@ -13,6 +13,12 @@ faceVal (Card (face, _)) = face
 consecutive :: Card -> Card -> Bool
 consecutive (Card (a, _)) (Card (b, _)) = succ a == b  
 
+succCard :: Card -> Face
+succCard (Card (face, _)) = succ face
+
+predCard :: Card -> Face
+predCard (Card (face, _)) = pred face
+
 -- consList expects a sorted list
 consList :: [Card] -> Bool
 consList [] = True
@@ -95,9 +101,9 @@ data Play = Pass
           | Single Face Card
           | Pair Face Card Card
           | Triple Face Card Card Card
-          | House (Face, Face) [Card]
-          | RunPairs Face Int [(Card, Card)] -- Int for length, Face for lowest card 
-          | Run Face Int [Card] -- Int for length, Face for lowest card 
+          | House (Face, Face) (Play, Play)  
+          | RunPairs Face Int [Play] -- Int for length, Face for lowest card 
+          | Run Face Int [Play] -- Int for length, Face for lowest card 
     deriving (Ord, Eq, Show)
 
 data Legal = Play Play 
@@ -138,6 +144,7 @@ royal run@ (Run face int l) =
     if all (\x -> colorVal x == colorVal a) l then Right $ Royal face int l
                                               else Left run
     where a = head l
+royal l = Left l
 
 readSingle :: [Card] -> Either ([Card], String) Play
 readSingle [x] = Right $ Single (faceVal x) x
@@ -165,17 +172,30 @@ readTriple list = Left (list, "wrong number : 3")
 readRuns :: [Card] -> Either ([Card], String) Play
 readRuns l = 
     if containPhoenix l then phoenixRun l
-                        else if consList l then Right $ Run (faceVal $ head l) ll l
-                                           else Left (l, "not run")
+                        else if consList l 
+                                then Right $ Run (faceVal $ head l) ll l
+                                else Left (l, "not run")
     where ll = length l
 
 -- helper function for run when there is a Phoenix 
-phoenixSplit :: [Card] -> ([Card], [Card])
-phoenixSplit l = undefined
-
+-- assumes that [Card] is already sorted 
+phoenixSplit :: [Card] -> ([(Card, Card)], [(Card, Card)])
+phoenixSplit l = 
+    let newl = L.delete (Card (Phoenix, Special)) l in  
+    span (uncurry consecutive) $ zip newl $ tail newl 
 
 -- phoenixRun should only be passed [Card] that
 -- have a Phoenix 
 -- at least 5 cards 
+-- already sorted
 phoenixRun :: [Card] -> Either ([Card], String) Play
-phoenixRun l = undefined 
+phoenixRun l = case phoenixSplit l of 
+    ([],[]) -> Left (l, "provided empty list to phoenixRun, error") 
+    ([],a) -> Right $ Run (succCard $ last l) (length l) l
+    (a,[]) -> Right $ Run (succCard $ last l) (length l) l
+    (a, (x,y):b) -> if succCard x == predCard y 
+                       then Right $ Run (faceVal $ head l) (length l) l
+                       else Left (l, "not phoenixRun")
+
+readRunPairs :: [Card] -> Either ([Card], String) Play
+readRunPairs l = undefined
