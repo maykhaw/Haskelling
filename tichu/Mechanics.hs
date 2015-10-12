@@ -13,6 +13,11 @@ faceVal (Card (face, _)) = face
 listFaceVal :: [Card] -> [Face]
 listFaceVal = L.nub . map faceVal
 
+consecFace :: [Face] -> Bool
+consecFace [] = True
+consecFace [x] = True
+consecFace (x : y : xs) = if succ x == y then consecFace (y : xs) 
+                                         else False
 numFaceVal :: [Card] -> Int
 numFaceVal = length . listFaceVal 
 
@@ -35,6 +40,8 @@ consList [] = True
 consList [a] = True
 consList (x : y : xs) = if consecutive x y then consList (y : xs)
                                            else False
+
+
 
 equalFace :: [Card] -> Bool
 equalFace [] = True
@@ -128,6 +135,10 @@ data Bomb = FourKind Face Card Card Card Card
           | Royal Face Int [Card] -- Int for length, Face for lowest card 
     deriving (Ord, Eq, Show) 
 
+bombToCards :: Bomb -> [Card]
+bombToCards (FourKind _ a b c d) = [a,b,c,d]
+bombToCards (Royal _ _ l) = l
+
 data Hand = Hand [Card]
 
 data Play = Pass 
@@ -139,9 +150,22 @@ data Play = Pass
           | Run Face Int [Card] -- Int for length, Face for lowest card 
     deriving (Ord, Eq, Show)
 
+playToCards :: Play -> [Card]
+playToCards Pass = []
+playToCards (Single _ card) = [card]
+playToCards (Pair _ one two) = [one, two]
+playToCards (Triple _ one two three) = [one, two, three]
+playToCards (House _ l) = l
+playToCards (RunPairs _ _ l) = l
+playToCards (Run _ _ l) = l
+
 data Legal = Play Play 
            | Bomb Bomb
     deriving (Ord, Eq, Show)
+
+legalToCards :: Legal -> [Card] 
+legalToCards (Play l) = playToCards l
+legalToCards (Bomb l) = bombToCards l
 
 try :: a -> [(a -> Either left right)] -> Maybe right  
 try a [] = Nothing 

@@ -110,4 +110,19 @@ phoenixRun l = case phoenixSplit l of
                        else Left (l, "not phoenixRun")
 
 readRunPairs :: [Card] -> Either ([Card], String) Play
-readRunPairs l = undefined
+readRunPairs l = 
+    case containSpecial l of
+        Just [phoenix] -> phoenixRunPairs l
+        Nothing -> if (length l) == (2 * numFaceVal l) 
+                then helperRunPairs l
+                else Left (l, "cannot be runPairs")
+        _ -> Left (l, "contains Specials /= Phoenix")
+    where helperRunPairs :: [Card] -> Either ([Card], String) Play
+          helperRunPairs l = 
+            let newl = L.groupBy (\a b -> faceVal a == faceVal b) l in
+            if all (\x -> length x == 2) newl && (consecFace $ listFaceVal l)
+                then Right $ RunPairs (faceVal $ head l) (length newl) l
+                else Left (l, "not runPairs")
+
+phoenixRunPairs :: [Card] -> Either ([Card], String) Play
+phoenixRunPairs l = undefined
