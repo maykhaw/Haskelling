@@ -18,13 +18,15 @@ fourKind :: [Card] -> Either ([Card], String) Bomb
 fourKind list@(a:b:c:d:[]) =
     if equalFace list then Right $ FourKind (faceVal a) a b c d
                       else Left (list, "4 cards, but not FourKind")
+fourKind l = Left (l, "is not exactly four cards, cannot be FourKind")
 
 
 royal :: [Card] -> Either ([Card], String) Bomb  
-royal l = if numColorVal l /= 1 then Left (l, "not royal, more than one Color")
-                                else case readRun l of
+royal l = case isOneColor l of -- isOneColor ensures that there are no Specials 
+    Just x -> case readRun l of
         Right (Run face int list) -> Right $ Royal face int list
         _ -> Left (l, "not a run, cannot be royal")
+    _ -> Left (l, "contains multiple colors")
 
 readPlay :: [Card] -> Maybe Play 
 readPlay l = try l [ readSingle
@@ -67,7 +69,25 @@ readRun l =
     where ll = length l
 
 readHouse :: [Card] -> Either ([Card], String) Play
-readHouse l = undefined 
+readHouse l = if containPhoenix l then phoenixHouse l
+                                  else helperHouse l
+    where helperHouse :: [Card] -> Either ([Card], String) Play
+          helperHouse x = case faceOccurs x of
+            [(faceone, one), (facetwo, two)] -> case (one,two) of
+                (3, 2) -> Right $ House (faceone, facetwo) x
+                (2, 3) -> Right $ House (facetwo, faceone) x
+                _ -> Left (x, "only 2 Face, but wrong numbers of each")
+            _ -> Left (x, "no Phoenix and wrong number of Face")
+
+phoenixHouse :: [Card] -> Either ([Card], String) Play
+phoenixHouse l = let newl = L.delete phoenix l in 
+    case faceOccurs newl of
+        [(faceone, one), (facetwo, two)] -> 
+            if one == 2 && two == 2 then 
+                    if faceone > facetwo then Right $ House (faceone, facetwo) l
+                                         else Right $ House (facetwo, faceone) l
+                else Left (l, "2 Face, incorrect num")
+        _ -> Left (l, "incorrect number of Face")
 
 -- helper function for run when there is a Phoenix 
 -- assumes that [Card] is already sorted 
@@ -78,12 +98,12 @@ phoenixSplit l =
 
 -- phoenixRun should only be passed [Card] that
 -- have a Phoenix 
--- at least 5 cards 
 -- already sorted
 phoenixRun :: [Card] -> Either ([Card], String) Play
 phoenixRun l = case phoenixSplit l of 
     ([],[]) -> Left (l, "provided empty list to phoenixRun, error") 
-    ([],a) -> Right $ Run (succCard $ last l) (length l) l
+    ([],a) -> Right $ Run (succCard $ last l) (length l) l 
+        -- in theory, this case should never happen
     (a,[]) -> Right $ Run (succCard $ last l) (length l) l
     (a, (x,y):b) -> if succCard x == predCard y 
                        then Right $ Run (faceVal $ head l) (length l) l

@@ -2,6 +2,7 @@ module Mechanics where
 
 {-# LANGUAGE ScopedTypeVariables #-} 
 import qualified Data.List as L
+import Data.Ord
 
 data Card = Card (Face, Color)
     deriving (Ord, Eq, Show)
@@ -9,8 +10,14 @@ data Card = Card (Face, Color)
 faceVal :: Card -> Face
 faceVal (Card (face, _)) = face
 
+listFaceVal :: [Card] -> [Face]
+listFaceVal = L.nub . map faceVal
+
 numFaceVal :: [Card] -> Int
-numFaceVal l = length $ L.nub $ map faceVal l 
+numFaceVal = length . listFaceVal 
+
+faceOccurs :: [Card] -> [(Face, Int)]
+faceOccurs l = map (\x -> (head x, length x)) $ L.group $ map faceVal l
 
 -- first card should be lower than second card 
 consecutive :: Card -> Card -> Bool
@@ -37,6 +44,12 @@ equalFace (x : y : xs) = if faceVal x == faceVal y then equalFace (y : xs)
 
 colorVal :: Card -> Color
 colorVal (Card (_, color)) = color  
+
+isOneColor :: [Card] -> Maybe Color 
+isOneColor l = case L.nub $ map colorVal l of
+    [x] -> Just x
+    _ -> Nothing
+
 
 numColorVal :: [Card] -> Int
 numColorVal = length . L.nub . map colorVal 
@@ -67,15 +80,20 @@ data Color = Jade
            | Special
     deriving (Ord, Eq, Show)
 
+dog = Card (Dog, Special)
+mahjong = Card (Mahjong, Special)
+phoenix = Card (Phoenix, Special)
+dragon = Card (Dragon, Special)
+
 
 isSpecial :: Card -> Bool
 isSpecial x = colorVal x == Special 
 
 isPhoenix :: Card -> Bool
-isPhoenix x = faceVal x == Phoenix 
+isPhoenix x = x == phoenix 
 
 isMahjong :: Card -> Bool
-isMahjong x = faceVal x == Mahjong
+isMahjong x = x == mahjong 
 
 containSpecial :: [Card] -> Maybe [Card]
 containSpecial l = case foldl helper [] l of
@@ -90,6 +108,15 @@ containPhoenix = foldl helper False
     where helper :: Bool -> Card -> Bool
           helper False x = isPhoenix x
           helper True _ = True
+
+phoenixmahjong :: [Card] -> Bool
+phoenixmahjong l = case containSpecial l of
+    Nothing -> True
+    Just [phoenix] -> True
+    Just [mahjong] -> True
+    Just [mahjong, phoenix] -> True
+    _ -> False
+-- why is there pattern overlap? 
 
 containMahjong :: [Card] -> Bool
 containMahjong = foldl helper False
