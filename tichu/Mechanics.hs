@@ -1,6 +1,7 @@
-module Mechanics where
-
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ScopedTypeVariables #-} 
+module Mechanics where
 import qualified Data.List as L
 import Data.Ord
 
@@ -85,22 +86,32 @@ data Color = Jade
            | Pagoda
            | Sword
            | Special
-    deriving (Ord, Eq, Show)
+    deriving (Ord, Eq, Show, Enum)
 
-dog = Card (Dog, Special)
-mahjong = Card (Mahjong, Special)
-phoenix = Card (Phoenix, Special)
-dragon = Card (Dragon, Special)
+pattern DogCard = Card (Dog, Special)
+pattern MahjongCard = Card (Mahjong, Special)
+pattern PhoenixCard = Card (Phoenix, Special)
+pattern DragonCard = Card (Dragon, Special)
+
+deck = DogCard 
+     : MahjongCard 
+     : PhoenixCard 
+     : DragonCard 
+     : (map (Card) $ concatMap (\x -> map (x,) color) faces) 
+    where faces :: [Face] = [Two .. Ace]
+          color :: [Color] = [Jade .. Sword] 
 
 
 isSpecial :: Card -> Bool
 isSpecial x = colorVal x == Special 
 
 isPhoenix :: Card -> Bool
-isPhoenix x = x == phoenix 
+isPhoenix PhoenixCard = True
+isPhoenix _ = False
 
 isMahjong :: Card -> Bool
-isMahjong x = x == mahjong 
+isMahjong MahjongCard = True
+isMahjong _ = False
 
 containSpecial :: [Card] -> Maybe [Card]
 containSpecial l = case foldl helper [] l of
@@ -119,11 +130,10 @@ containPhoenix = foldl helper False
 phoenixmahjong :: [Card] -> Bool
 phoenixmahjong l = case containSpecial l of
     Nothing -> True
-    Just [phoenix] -> True
-    Just [mahjong] -> True
-    Just [mahjong, phoenix] -> True
+    Just [PhoenixCard] -> True
+    Just [MahjongCard] -> True
+    Just [MahjongCard, PhoenixCard] -> True
     _ -> False
--- why is there pattern overlap? 
 
 containMahjong :: [Card] -> Bool
 containMahjong = foldl helper False
