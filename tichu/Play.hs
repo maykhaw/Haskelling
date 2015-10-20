@@ -101,12 +101,19 @@ phoenixSplit l =
 -- already sorted
 phoenixRun :: [Card] -> Either ([Card], String) Play
 phoenixRun l = case phoenixSplit l of 
+    let headl = head l
+        before = predCard headl
+        lastl = last l 
+        after = succCard lastl 
+        ll = length l in         
     ([],[]) -> Left (l, "provided empty list to phoenixRun, error") 
-    ([],a) -> Right $ Run (succCard $ last l) (length l) l 
+    ([],a) -> if (faceVal $ last a) == Ace then Right $ Run before ll l
+                                           else Right $ Run after ll l
         -- in theory, this case should never happen
-    (a,[]) -> Right $ Run (succCard $ last l) (length l) l
+    (a,[]) -> if (faceVal $ last a) == Ace then Right $ Run before ll l
+                                           else Right $ Run after ll l
     (a, (x,y):b) -> if succCard x == predCard y 
-                       then Right $ Run (faceVal $ head l) (length l) l
+                       then Right $ Run (faceVal $ head l) ll l
                        else Left (l, "not phoenixRun")
 
 readRunPairs :: [Card] -> Either ([Card], String) Play
