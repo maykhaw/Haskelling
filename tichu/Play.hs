@@ -125,4 +125,13 @@ readRunPairs l =
                 else Left (l, "not runPairs")
 
 phoenixRunPairs :: [Card] -> Either ([Card], String) Play
-phoenixRunPairs l = undefined
+phoenixRunPairs l = 
+    let newl = L.delete phoenix l 
+        pairs = L.groupBy (\a b -> faceVal a == faceVal b) newl  
+        faceList = listFaceVal newl 
+        nonPairs = filter (\x -> length x == 2) pairs in 
+    if length nonPairs == 1 
+        then if consecFace faceList 
+            then Right $ RunPairs (faceVal $ head newl) (length faceList) l
+            else Left (l, "pairs, but not consecutive")
+        else Left (l, "too many non Pairs")

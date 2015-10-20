@@ -5,6 +5,7 @@ module Mechanics where
 import qualified Data.List as L
 import Data.Ord
 
+
 data Card = Card (Face, Color)
     deriving (Ord, Eq, Show)
 
@@ -101,6 +102,7 @@ deck = DogCard
     where faces :: [Face] = [Two .. Ace]
           color :: [Color] = [Jade .. Sword] 
 
+-- is there a way to pair my types up so that Special only goes with the 4 Specials? and so forth?
 
 isSpecial :: Card -> Bool
 isSpecial x = colorVal x == Special 
