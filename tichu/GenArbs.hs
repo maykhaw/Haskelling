@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 module GenArbs where 
 import Test.QuickCheck
 import Mechanics
@@ -36,13 +37,19 @@ prop_genTriple = forAll genTriple $ \triple ->
     let list = playToCards triple 
         facex = fromJust $ playVal triple 
         helper :: Face -> Bool
-        helper x = x == Phoenix || x == facex
-    in all helper (map faceVal list) && length (nub $ map colorVal list) == 3
+        helper x = x == Phoenix || x == facex in 
+    all helper (map faceVal list) && length (nub $ map colorVal list) == 3
+
+genHouse :: Gen Play
+genHouse = undefined  
+    
+
 
 genNonSpecial :: Gen Card
 genNonSpecial = do 
-    x <- elements $ enumFromTo Two Ace
-    y <- elements $ enumFromTo Jade Sword
+    x <- elements [Two .. Ace]
+    y <- elements [Jade .. Sword]
     return $ Card (x,y) 
+
 
 
