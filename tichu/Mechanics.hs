@@ -102,6 +102,8 @@ deck = DogCard
     where faces :: [Face] = [Two .. Ace]
           color :: [Color] = [Jade .. Sword] 
 
+colors :: [Color] = [Jade .. Special]
+
 -- is there a way to pair my types up so that Special only goes with the 4 Specials? and so forth?
 
 isSpecial :: Card -> Bool
@@ -170,6 +172,18 @@ playToCards (Triple _ one two three) = [one, two, three]
 playToCards (House _ l) = l
 playToCards (RunPairs _ _ l) = l
 playToCards (Run _ _ l) = l
+
+playVal :: Play -> Maybe Face 
+playVal Pass = Nothing 
+playVal (Single face _) = Just face 
+playVal (Pair face _ _) = Just face 
+playVal (Triple face _ _ _) = Just face 
+playVal (House (face,_) _) = Just face 
+playVal (RunPairs face _ _) = Just face 
+playVal (Run face _ _) = Just face
+
+toSingle :: Card -> Play
+toSingle x = Single (faceVal x) x
 
 data Legal = Play Play 
            | Bomb Bomb
