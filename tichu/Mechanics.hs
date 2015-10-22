@@ -99,8 +99,8 @@ deck = DogCard
      : PhoenixCard 
      : DragonCard 
      : (map (Card) $ concatMap (\x -> map (x,) color) faces) 
-    where faces :: [Face] = [Two .. Ace]
-          color :: [Color] = [Jade .. Sword] 
+     where faces :: [Face] = [Two .. Ace]
+           color :: [Color] = [Jade .. Sword] 
 
 colors :: [Color] = [Jade .. Special]
 
@@ -156,9 +156,9 @@ bombToCards (Royal _ _ l) = l
 data Hand = Hand [Card]
 
 data Play = Pass 
-          | Single Face Card
-          | Pair Face Card Card
-          | Triple Face Card Card Card
+          | Single Face [Card]
+          | Pair Face [Card] 
+          | Triple Face [Card] 
           | House (Face, Face) [Card] -- first Face is triple, second is pair  
           | RunPairs Face Int [Card] -- Int for length, Face for lowest card 
           | Run Face Int [Card] -- Int for length, Face for lowest card 
@@ -166,9 +166,9 @@ data Play = Pass
 
 playToCards :: Play -> [Card]
 playToCards Pass = []
-playToCards (Single _ card) = [card]
-playToCards (Pair _ one two) = [one, two]
-playToCards (Triple _ one two three) = [one, two, three]
+playToCards (Single _ l) = l
+playToCards (Pair _ l) = l 
+playToCards (Triple _ l) = l 
 playToCards (House _ l) = l
 playToCards (RunPairs _ _ l) = l
 playToCards (Run _ _ l) = l
@@ -176,14 +176,23 @@ playToCards (Run _ _ l) = l
 playVal :: Play -> Maybe Face 
 playVal Pass = Nothing 
 playVal (Single face _) = Just face 
-playVal (Pair face _ _) = Just face 
-playVal (Triple face _ _ _) = Just face 
+playVal (Pair face _) = Just face 
+playVal (Triple face _) = Just face 
 playVal (House (face,_) _) = Just face 
 playVal (RunPairs face _ _) = Just face 
 playVal (Run face _ _) = Just face
 
 toSingle :: Card -> Play
-toSingle x = Single (faceVal x) x
+toSingle x = Single (faceVal x) [x]
+
+houseSplit :: Play -> Maybe (Play, Play)
+houseSplit (House (facex, facey) l) = 
+    Just (Triple facex $ helperx facex 3 l, Pair facey $ helperx facey 2 l) 
+    where helperx :: Face -> Int -> [Card] -> [Card]
+          helperx x  int list = let trip = filter (\b -> faceVal b == x) list in 
+                if length trip == int  then trip
+                                       else PhoenixCard : trip
+houseSplit _ = Nothing
 
 data Legal = Play Play 
            | Bomb Bomb
