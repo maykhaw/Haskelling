@@ -38,13 +38,13 @@ readPlay l = try l [ readSingle
                    ]
 
 readSingle :: [Card] -> Either ([Card], String) Play
-readSingle [x] = Right $ Single (faceVal x) x
+readSingle [x] = Right $ Single (faceVal x) [x]
 readSingle xs = Left (xs, "not single card") 
                             
 readPair :: [Card] -> Either ([Card], String) Play
 readPair list@(x : y : []) = 
-    if equalFace list then Right $ Pair facex x y
-                      else if isPhoenix y then Right $ Pair facex x y
+    if equalFace list then Right $ Pair facex list 
+                      else if isPhoenix y then Right $ Pair facex list 
                                           else Left (list, "not Pair")
     where facex = faceVal x 
 readPair list = Left (list, "wrong number : 2")
@@ -52,14 +52,13 @@ readPair list = Left (list, "wrong number : 2")
 
 readTriple :: [Card] -> Either ([Card], String) Play
 readTriple list@(x : y : z : []) = 
-    if equalFace list then Right $ Triple facex x y z
-                      else if isPhoenix z then Right $ Triple facex x y z
+    if equalFace list then Right $ Triple facex list 
+                      else if isPhoenix z then Right $ Triple facex list 
                                           else Left (list, "not Triple")
     where facex = faceVal x 
 readTriple list = Left (list, "wrong number : 3")
 
 -- readRuns should only be passed [Card]
--- have at least 5 cards 
 readRun :: [Card] -> Either ([Card], String) Play
 readRun l = 
     if containPhoenix l then phoenixRun l
@@ -80,7 +79,7 @@ readHouse l = if containPhoenix l then phoenixHouse l
             _ -> Left (x, "no Phoenix and wrong number of Face")
 
 phoenixHouse :: [Card] -> Either ([Card], String) Play
-phoenixHouse l = let newl = L.delete phoenix l in 
+phoenixHouse l = let newl = L.delete PhoenixCard l in 
     case faceOccurs newl of
         [(faceone, one), (facetwo, two)] -> 
             if one == 2 && two == 2 then 
@@ -100,17 +99,18 @@ phoenixSplit l =
 -- have a Phoenix 
 -- already sorted
 phoenixRun :: [Card] -> Either ([Card], String) Play
-phoenixRun l = case phoenixSplit l of 
+phoenixRun l = 
     let headl = head l
         before = predCard headl
         lastl = last l 
         after = succCard lastl 
         ll = length l in         
+    case phoenixSplit l of 
     ([],[]) -> Left (l, "provided empty list to phoenixRun, error") 
-    ([],a) -> if (faceVal $ last a) == Ace then Right $ Run before ll l
+    ([],a) -> if (faceVal $ last l) == Ace then Right $ Run before ll l
                                            else Right $ Run after ll l
         -- in theory, this case should never happen
-    (a,[]) -> if (faceVal $ last a) == Ace then Right $ Run before ll l
+    (a,[]) -> if (faceVal $ last l) == Ace then Right $ Run before ll l
                                            else Right $ Run after ll l
     (a, (x,y):b) -> if succCard x == predCard y 
                        then Right $ Run (faceVal $ head l) ll l
@@ -133,7 +133,7 @@ readRunPairs l =
 
 phoenixRunPairs :: [Card] -> Either ([Card], String) Play
 phoenixRunPairs l = 
-    let newl = L.delete phoenix l 
+    let newl = L.delete PhoenixCard l 
         pairs = L.groupBy (\a b -> faceVal a == faceVal b) newl  
         faceList = listFaceVal newl 
         nonPairs = filter (\x -> length x == 2) pairs in 
