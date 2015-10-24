@@ -81,16 +81,18 @@ genPlainRun = do
 
 genPhoenixRun :: Gen Play
 genPhoenixRun = do
-    x <- elements [4..12]
-    y <- elements [Mahjong .. (fromJust $ runHelper x)]
-    let runFace = take x [y ..Ace]
-    colorList <- replicateM x $ elements [Jade .. Sword] 
-    -- still working on this
-    let cards = map (Card $) 
-            $ if y == Mahjong then zip runFace (Special : colorList)
-                              else zip runFace colorList
-    return $ Run y x cards
-
+    (Run face ll list) <- genPlainRun
+    subPhoen <- elements list 
+    let newFace = runPhoenixHelper face subPhoen list
+    let newList = sort $ PhoenixCard : $ delete subPhoen list 
+    return $ Run newFace ll newList
+    
+runPhoenixHelper :: Face -> Card -> [Card] -> Face
+runPhoenixHelper face subPhoen l =
+    let ll = last l in 
+    case (face == faceVal subPhoen, last l == Ace) of
+        (True, False) -> faceVal $ head $ tail l
+        (_, _) -> face 
 
 runHelper :: Int -> Maybe Face 
 runHelper x = if x >= 5 then lookup x mapper  
