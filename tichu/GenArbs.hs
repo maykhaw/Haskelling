@@ -3,7 +3,7 @@
 module GenArbs where 
 import Test.QuickCheck
 import Mechanics
-import Data.List (nub, delete)
+import Data.List (nub, delete, sort)
 import Control.Monad
 import Data.Maybe (fromJust) 
 
@@ -84,13 +84,13 @@ genPhoenixRun = do
     (Run face ll list) <- genPlainRun
     subPhoen <- elements list 
     let newFace = runPhoenixHelper face subPhoen list
-    let newList = sort $ PhoenixCard : $ delete subPhoen list 
+    let newList = sort $ PhoenixCard : (delete subPhoen list)
     return $ Run newFace ll newList
     
 runPhoenixHelper :: Face -> Card -> [Card] -> Face
 runPhoenixHelper face subPhoen l =
     let ll = last l in 
-    case (face == faceVal subPhoen, last l == Ace) of
+    case (face == faceVal subPhoen, (faceVal $ last l) == Ace) of
         (True, False) -> faceVal $ head $ tail l
         (_, _) -> face 
 
@@ -98,6 +98,24 @@ runHelper :: Int -> Maybe Face
 runHelper x = if x >= 5 then lookup x mapper  
                         else Nothing
     where mapper :: [(Int, Face)] = zip [5..13] [Ten .. Mahjong]
+
+genRunPairs :: Gen Play
+genRunPairs = do
+    Pair face l <- genPairs
+    return $ undefined
+
+runPairsHelper :: Face -> [Face]
+runPairsHelper face = 
+    let cards = [Two .. Ace]
+        mapper = zip cards [2 .. 14] in  
+    case lookup face mapper of
+        Just x -> drop (x - 1) cards
+        _ -> error "shouldn't have happened" 
+
+prop_rpsHelper :: Face -> Bool
+prop_rpsHelper face = 
+    let list = runPairsHelper face in 
+    consList (face : list)
 
 
 genNonSpecial :: Gen Card
