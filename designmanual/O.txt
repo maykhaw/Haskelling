@@ -1,0 +1,17 @@
+f, g :: Num a => a -> a
+
+
+f = O(g)
+f \in O(g) ===== g \in o(f)
+
+
+x <= y ===== y >= x
+----
+
+x <= y
+y <= x
+--> x == y
+
+f \in O(g)
+f \in o(g)
+--> f \in \Theta(g)
